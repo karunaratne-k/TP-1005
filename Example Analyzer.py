@@ -6,8 +6,8 @@ def main():
 
     # Configure Analyzer
     tpi.set_analyzer_parameters(
-        start_freq_khz=100_000,
-        stop_freq_khz=200_000,
+        start_freq_khz=800_000,
+        stop_freq_khz=900_000,
         num_points=50,
         dwell_per_point_ms=10,
         mode=0,  # Forward mode
