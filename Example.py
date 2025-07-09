@@ -35,13 +35,6 @@ def main():
         for k, v in params.items():
             print(f"{k}: {v}")
 
-        # Instruction to user
-        input(
-            "\n*** BASELINE ***\n"
-            "Please confirm NO antenna or load is connected to the RF output.\n"
-            "Press Enter to proceed"
-        )
-
         print("Starting analyzer for one sweep...")
         tpi.start_analyzer_v2(
             sweeps=0,
