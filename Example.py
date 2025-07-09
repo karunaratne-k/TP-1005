@@ -21,9 +21,9 @@ def main():
         tpi.set_analyzer_parameters_v2(
             start_khz=1_606_250,
             stop_khz=1_636_250,
-            step_khz=30_000,
-            dwell_ms=200,
-            num_points=100,
+            step_khz=306,
+            dwell_ms=20,
+            num_points=99,
             auto_rf=True,
             max_points_per_packet=25,
             averages_per_point=8
