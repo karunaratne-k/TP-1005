@@ -13,7 +13,7 @@ def main():
         start_khz=1_606_250,
         stop_khz=1_636_250,
         step_khz=10_000,
-        dwell_ms=50,
+        dwell_ms=1000,
         num_points=5,
         auto_rf=True,
         max_points_per_packet=50,
@@ -25,16 +25,20 @@ def main():
     for k,v in params.items():
         print(f"{k}: {v}")
 
-    input("\n*** SAFETY CHECK ***\nNo antenna connected?\nPress Enter to continue.")
 
     tpi.start_analyzer_v2()
 
     print("Receiving analyzer data...")
-    points = tpi.read_analyzer_data_v2(verbose=True, dump_raw=True)
-    print("\nFrequency_kHz, dBm")
-    for step in sorted(points):
-        freq = params["start_khz"] + step*params["step_khz"]
-        print(f"{freq},{points[step]:.2f}")
+    print("Capturing raw data 10 times...")
+
+    for i in range(10):
+        start_time = time()
+        raw_data = tpi.capture_analyzer_raw(duration=0.5)
+        elapsed = time() - start_time
+        print(f"\nCapture #{i+1}:")
+        print(f"Captured {len(raw_data)} bytes in {elapsed:.2f} seconds")
+        print(raw_data.hex())
+
 
     tpi.close()
 

@@ -137,44 +137,124 @@ class TPIController:
         if resp[:2] != b'\x08\x3D':
             raise RuntimeError("Failed to start analyzer.")
 
+    def capture_analyzer_raw(self, duration=4):
+        """
+        Captures raw bytes from the serial port for `duration` seconds.
+        Returns a bytes object.
+        """
+        import time
+
+        self.ser.timeout = 0.1  # Short timeout for non-blocking reads
+        end_time = time.time() + duration
+        all_data = bytearray()
+
+        while time.time() < end_time:
+            chunk = self.ser.read(1024)
+            if chunk:
+                all_data.extend(chunk)
+
+        return bytes(all_data)
+
     def read_analyzer_data_v2(self, verbose=True, dump_raw=False):
+        """
+        Reads analyzer data packets until the analyzer stopped packet is received.
+        Returns a dict: {scan_step: dBm}
+        If repeated timeouts occur, returns None.
+        """
         all_points = {}
-        self.ser.timeout = 2
+        self.ser.timeout = 2  # 2-second read timeout
+
+        timeout_count = 0
+
         while True:
-            header = self.ser.read(4)
-            if len(header) < 4:
-                if verbose: print("Timeout waiting for packet header.")
+            b1 = self.ser.read(1)
+            if not b1:
+                timeout_count += 1
+                if verbose:
+                    print("Timeout waiting for packet header.")
+                if timeout_count > 2:
+                    if verbose:
+                        print("Too many consecutive timeouts. Aborting.")
+                    return None
                 continue
-            if header[0]!=0xAA or header[1]!=0x55:
-                if verbose: print(f"Ignoring invalid header: {header.hex()}")
+            timeout_count = 0  # reset on any successful read
+
+            if b1 != b'\xAA':
                 continue
-            length = (header[2]<<8) | header[3]
+
+            b2 = self.ser.read(1)
+            if not b2:
+                timeout_count += 1
+                if verbose:
+                    print("Timeout waiting for second header byte.")
+                if timeout_count > 2:
+                    if verbose:
+                        print("Too many consecutive timeouts. Aborting.")
+                    return None
+                continue
+            if b2 != b'\x55':
+                continue
+
+            length_bytes = self.ser.read(2)
+            if len(length_bytes) < 2:
+                if verbose:
+                    print("Timeout reading length bytes.")
+                continue
+            length = (length_bytes[0] << 8) | length_bytes[1]
+
             body = self.ser.read(length)
-            if len(body)<length:
-                if verbose: print("Incomplete body.")
+            if len(body) < length:
+                if verbose:
+                    print("Incomplete body.")
                 continue
+
             checksum = self.ser.read(1)
-            if len(checksum)<1:
-                if verbose: print("Missing checksum.")
+            if len(checksum) < 1:
+                if verbose:
+                    print("Missing checksum.")
                 continue
+
             if dump_raw:
-                print(f"Header: {header.hex()}\nBody: {body.hex()}\nChecksum: {checksum[0]:02X}")
-            chk = (0xFF - ((header[2]+header[3]+sum(body)) &0xFF)) &0xFF
-            if checksum[0]!=chk:
-                if verbose: print("Checksum error.")
+                print("\n--- Raw Packet ---")
+                print(f"Header: aa55")
+                print(f"Length: {length}")
+                print(f"Body: {body.hex()}")
+                print(f"Checksum: {checksum[0]:02X}")
+
+            chk = (0xFF - ((length_bytes[0] + length_bytes[1] + sum(body)) & 0xFF)) & 0xFF
+            if checksum[0] != chk:
+                if verbose:
+                    print("Checksum error.")
                 continue
+
             cmd = body[:2]
-            if cmd==b'\x07\x3E':
-                n_points=body[2]
-                first_step=int.from_bytes(body[3:7],'little')
-                data_bytes=body[7:]
+
+            if cmd == b'\x07\x3E':
+                if len(body) < 7:
+                    if verbose:
+                        print("Malformed data packet.")
+                    continue
+                n_points = body[2]
+                first_step = int.from_bytes(body[3:7], 'little')
+                data_bytes = body[7:]
+                expected_len = n_points * 4
+                if len(data_bytes) < expected_len:
+                    if verbose:
+                        print("Incomplete data points, skipping.")
+                    continue
                 for i in range(n_points):
-                    dBm=struct.unpack('<f',data_bytes[i*4:(i+1)*4])[0]
-                    all_points[first_step+i]=dBm
-                if verbose: print(f"Received {n_points} points from step {first_step}.")
-            elif cmd==b'\x07\x3F':
-                if verbose: print("Analyzer stopped.")
+                    dBm = struct.unpack('<f', data_bytes[i * 4:(i + 1) * 4])[0]
+                    all_points[first_step + i] = dBm
+                if verbose:
+                    print(f"Received {n_points} points starting at step {first_step}.")
+
+            elif cmd == b'\x07\x3F':
+                if verbose:
+                    print("Analyzer stopped.")
                 break
+
             else:
-                if verbose: print(f"Unknown packet: {cmd.hex()}")
+                if verbose:
+                    print(f"Ignoring unknown packet: {cmd.hex()}")
+
         return all_points
