@@ -94,6 +94,12 @@ class TPIController:
             raise RuntimeError("Failed to set RF power.")
 
     def set_analyzer_parameters_v2(self, start_khz, stop_khz, step_khz, dwell_ms, num_points, auto_rf, max_points_per_packet, averages_per_point):
+        """It may seem redundant to specify the number of points to measure as that
+         information can be surmised from the stop frequency and the step frequency.
+          However, it is up to the user to calculate this and supply the total number
+           of points to be measured. Note that, for example, a scan from 100 MHz to
+            200 MHz with a step frequency of 1 MHz will measure 101 points."""
+
         if dwell_ms < 2 or dwell_ms > 500:
             raise ValueError("Dwell time out of range.")
         if averages_per_point < 1:
