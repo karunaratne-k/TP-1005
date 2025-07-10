@@ -2,7 +2,7 @@ from tpi_controller import TPIController
 import struct
 
 def main():
-    port = "COM5"
+    port = "COM3"
 
     tpi = None
     try:
