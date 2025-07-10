@@ -1,4 +1,5 @@
 from tpi_controller2 import TPIController
+import time
 
 def main():
     port = "COM3"
@@ -32,12 +33,13 @@ def main():
     print("Capturing raw data 100 times...")
 
     for i in range(100):
-        start_time = time()
+        start_time = time.time()  # Fixed: Using time.time() instead of time()
         raw_data = tpi.capture_analyzer_raw(duration=0.1)
-        elapsed = time() - start_time
+        elapsed = time.time() - start_time  # Fixed: Using time.time() instead of time()
         print(f"\nCapture #{i+1}:")
         print(f"Captured {len(raw_data)} bytes in {elapsed:.2f} seconds")
         print(raw_data.hex())
+
 
 
     tpi.close()
