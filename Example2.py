@@ -13,7 +13,7 @@ def main():
         start_khz=1_606_250,
         stop_khz=1_636_250,
         step_khz=10_000,
-        dwell_ms=1000,
+        dwell_ms=500,
         num_points=5,
         auto_rf=True,
         max_points_per_packet=50,
@@ -29,11 +29,11 @@ def main():
     tpi.start_analyzer_v2()
 
     print("Receiving analyzer data...")
-    print("Capturing raw data 10 times...")
+    print("Capturing raw data 100 times...")
 
-    for i in range(10):
+    for i in range(100):
         start_time = time()
-        raw_data = tpi.capture_analyzer_raw(duration=0.5)
+        raw_data = tpi.capture_analyzer_raw(duration=0.1)
         elapsed = time() - start_time
         print(f"\nCapture #{i+1}:")
         print(f"Captured {len(raw_data)} bytes in {elapsed:.2f} seconds")
