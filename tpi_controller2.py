@@ -49,21 +49,30 @@ class TPIController:
 
     def _send_command(self, body_bytes):
         pkt = self._build_packet(body_bytes)
+        print(f"Sending packet: {pkt.hex()}")
         self.ser.reset_input_buffer()
         self.ser.write(pkt)
         return self._read_response()
 
     def _read_response(self):
         header = self.ser.read(4)
+        print(f"Header received: {header.hex()}")  # Print header bytes
+
         if len(header) < 4:
             raise RuntimeError("Timeout waiting for response header.")
         if header[0] != 0xAA or header[1] != 0x55:
             raise RuntimeError(f"Invalid response header: {header.hex()}")
+
         length = (header[2] << 8) | header[3]
         body = self.ser.read(length)
+        print(f"Body received: {body.hex()}")  # Print body bytes
+
         if len(body) < length:
             raise RuntimeError("Timeout reading response body.")
+
         checksum = self.ser.read(1)
+        print(f"Checksum received: {checksum.hex()}")  # Print checksum byte
+
         if len(checksum) < 1:
             raise RuntimeError("Timeout reading checksum.")
         chk = (0xFF - ((header[2] + header[3] + sum(body)) & 0xFF)) & 0xFF
@@ -92,6 +101,31 @@ class TPIController:
         resp = self._send_command([0x08, 0x0A, value])
         if resp[:2] != b'\x08\x0A':
             raise RuntimeError("Failed to set RF power.")
+
+    def read_rf_power(self):
+        """
+        Reads the currently set RF output power in dBm.
+        Returns an integer (-90 to +10).
+        """
+        resp = self._send_command([0x07, 0x0A])
+        if resp[:2] != b'\x07\x0A':
+            raise RuntimeError(f"Unexpected response: {resp.hex()}")
+        # Parse signed byte
+        n = resp[2]
+        if n >= 128:
+            n -= 256
+        return n
+
+    def set_rf_output_state(self, on: bool):
+        """
+        Turns RF output ON or OFF.
+        Args:
+            on (bool): True to turn ON, False to turn OFF.
+        """
+        value = 1 if on else 0
+        resp = self._send_command([0x08, 0x0B, value])
+        if resp[:2] != b'\x08\x0B':
+            raise RuntimeError(f"Failed to set RF output state: {resp.hex()}")
 
     def set_analyzer_parameters_v2(self, start_khz, stop_khz, step_khz, dwell_ms, num_points, auto_rf, max_points_per_packet, averages_per_point):
         """It may seem redundant to specify the number of points to measure as that

@@ -44,7 +44,10 @@ def calculate_num_points(start_khz, stop_khz, step_khz):
 
 def main():
     tpi = TPIController(PORT)
+
+    print("Enabling user mode...")
     tpi.enable_user_control()
+
     all_raw_data = bytearray()  # Create an empty bytearray to store all captures
 
 
@@ -65,15 +68,24 @@ def main():
         averages_per_point=AVERAGES_PER_POINT
     )
 
-    print("Confirming parameters:")
+    print("Confirming Analyzer parameters:")
     params = tpi.read_analyzer_parameters_v2()
     for k, v in params.items():
         print(f"{k}: {v}")
 
+    print("Reading current RF output power...")
+    power = tpi.read_rf_power()
+    print(f"Current RF output power: {power} dBm")
+    # Turn RF ON
+
+    print("Turning RF ON...")
+    tpi.set_rf_output_state(True)
+
+    print("Starting analyzer...")
     tpi.start_analyzer_v2()
 
     print("Receiving analyzer data...")
-    print(f"Capturing raw data {NUM_CAPTURES} times...")
+    print(f"Capturing raw data {NUM_CAPTURES} times... -this is some arbitrary duration- that is long enough - loop stops when it RXs analyzer stopped")
 
     for i in range(NUM_CAPTURES):
         start_time = time.time()
@@ -101,6 +113,10 @@ def main():
     print("\nComplete accumulated data (with preambles and checksums removed):")
     print(f"Total bytes captured: {len(all_raw_data)}")
     print(all_raw_data.hex())
+
+    # Turn RF OFF
+    print("Turning RF OFF...")
+    tpi.set_rf_output_state(False)
 
     tpi.close()
     # Convert accumulated data to float values
