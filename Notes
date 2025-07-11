@@ -1,0 +1,22 @@
+Attempt 1 to open COM5...
+Serial port COM5 opened successfully.
+Setting RF power to 0 dBm...
+Setting analyzer parameters...
+Confirming parameters:
+start_khz: 1606250
+stop_khz: 1636250
+step_khz: 5000
+dwell_ms: 20
+num_points: 7
+auto_rf: 1
+max_points_per_packet: 50
+averages_per_point: 1
+Receiving analyzer data...
+Capturing raw data 60 times...
+
+Capture #2:
+Captured 43 bytes in 0.11 seconds
+aa55001d073e0600000000000060c2000060c2000060c2000060c2000060c2000060c2cbaa550002073fb7
+Serial port closed.
+
+Process finished with exit code 0

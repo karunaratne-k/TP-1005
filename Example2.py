@@ -1,5 +1,6 @@
 from tpi_controller2 import TPIController
 import time
+import struct
 
 # Configuration parameters
 PORT = "COM5"
@@ -8,7 +9,7 @@ RF_POWER_DBM = 0
 # Analyzer parameters
 START_KHZ = 1_606_250
 STOP_KHZ = 1_636_250
-STEP_KHZ = 5_000
+STEP_KHZ = 300
 # Note step must go into stop-start an integer number of times.
 # "It may seem redundant to specify the number of points to measure
 # as that information can be surmised from the stop frequency and the
@@ -27,7 +28,7 @@ DWELL_MS = 20
 # duration proportionally.
 
 AUTO_RF = True
-MAX_POINTS_PER_PACKET = 50
+MAX_POINTS_PER_PACKET = 40
 AVERAGES_PER_POINT = 1    #1-8 permitted
 CAPTURE_DURATION = 0.1
 NUM_CAPTURES = 60
@@ -44,6 +45,8 @@ def calculate_num_points(start_khz, stop_khz, step_khz):
 def main():
     tpi = TPIController(PORT)
     tpi.enable_user_control()
+    all_raw_data = bytearray()  # Create an empty bytearray to store all captures
+
 
     print(f"Setting RF power to {RF_POWER_DBM} dBm...")
     tpi.set_rf_power(RF_POWER_DBM)
@@ -77,11 +80,44 @@ def main():
         raw_data = tpi.capture_analyzer_raw(duration=CAPTURE_DURATION)
         elapsed = time.time() - start_time
         if len(raw_data) > 0:  # Only print if bytes were captured
-            print(f"\nCapture #{i+1}:")
+            print(f"\nCapture #{i + 1}:")
             print(f"Captured {len(raw_data)} bytes in {elapsed:.2f} seconds")
             print(raw_data.hex())
 
+            # Remove preamble (first 11 bytes) and checksum (last byte)
+            if len(raw_data) > 12:  # Only process if packet is long enough
+                processed_data = raw_data[11:-1]  # Remove preamble and checksum
+                all_raw_data.extend(processed_data)
+
+            # Check if last 2 bytes are 3fb7
+            if len(raw_data) >= 7 and raw_data[-7:].hex() == "aa550002073fb7":
+                print("Found packet ending with aa550002073fb7, exiting...")
+                # Remove the sequence from all_raw_data if it exists at the end
+                if len(all_raw_data) >= 7:
+                    all_raw_data = all_raw_data[:-7]
+
+                break
+
+    print("\nComplete accumulated data (with preambles and checksums removed):")
+    print(f"Total bytes captured: {len(all_raw_data)}")
+    print(all_raw_data.hex())
+
     tpi.close()
+    # Convert accumulated data to float values
+    float_values = []
+    # Process data in chunks of 4 bytes
+    for i in range(0, len(all_raw_data), 4):
+        if i + 4 <= len(all_raw_data):  # Make sure we have 4 complete bytes
+            # '<f' format string means:
+            # < : little-endian (LSB first)
+            # f : 32-bit float (4 bytes)
+            float_val = struct.unpack('<f', all_raw_data[i:i + 4])[0]
+            float_values.append(float_val)
+
+    print("\nConverted float values:")
+    for i, value in enumerate(float_values):
+        print(f"Value {i + 1}: {value}")
+
 
 if __name__ == "__main__":
     main()

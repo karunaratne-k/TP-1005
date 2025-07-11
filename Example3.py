@@ -70,18 +70,9 @@ def main():
     tpi.start_analyzer_v2()
 
     print("Receiving analyzer data...")
-    print(f"Capturing raw data {NUM_CAPTURES} times...")
-
-    for i in range(NUM_CAPTURES):
-        start_time = time.time()
-        raw_data = tpi.capture_analyzer_raw(duration=CAPTURE_DURATION)
-        elapsed = time.time() - start_time
-        if len(raw_data) > 0:  # Only print if bytes were captured
-            print(f"\nCapture #{i+1}:")
-            print(f"Captured {len(raw_data)} bytes in {elapsed:.2f} seconds")
-            print(raw_data.hex())
+    print("Capturing packets until analyzer stops...")
+    tpi.capture_packets_until_stopped(verbose=True)
 
     tpi.close()
 
-if __name__ == "__main__":
     main()

@@ -143,6 +143,57 @@ class TPIController:
         if resp[:2] != b'\x08\x3D':
             raise RuntimeError("Failed to start analyzer.")
 
+    def capture_packets_until_stopped(self, verbose=True):
+        """
+        Captures packets until the analyzer stopped packet is received.
+        Prints each packet in hex.
+        """
+        self.ser.timeout = 2  # or longer if you want
+        packet_count = 0
+
+        while True:
+            header = self.ser.read(4)
+            if len(header) < 4:
+                if verbose:
+                    print("Timeout waiting for header.")
+                continue
+            if header[0] != 0xAA or header[1] != 0x55:
+                if verbose:
+                    print(f"Ignoring invalid header: {header.hex()}")
+                continue
+
+            length = (header[2] << 8) | header[3]
+            body = self.ser.read(length)
+            if len(body) < length:
+                if verbose:
+                    print("Incomplete body.")
+                continue
+
+            checksum = self.ser.read(1)
+            if len(checksum) < 1:
+                if verbose:
+                    print("Missing checksum.")
+                continue
+
+            # Validate checksum
+            chk = (0xFF - ((header[2] + header[3] + sum(body)) & 0xFF)) & 0xFF
+            if checksum[0] != chk:
+                if verbose:
+                    print("Checksum error, skipping packet.")
+                continue
+
+            packet_count += 1
+            print(f"\nPacket #{packet_count}:")
+            print(f"Header: {header.hex()}")
+            print(f"Body: {body.hex()}")
+            print(f"Checksum: {checksum[0]:02X}")
+
+            cmd = body[:2]
+            if cmd == b'\x07\x3F':
+                if verbose:
+                    print("Analyzer stopped.")
+                break
+
     def capture_analyzer_raw(self, duration=4):
         """
         Captures raw bytes from the serial port for `duration` seconds.
