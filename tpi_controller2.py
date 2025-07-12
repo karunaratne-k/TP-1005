@@ -48,15 +48,19 @@ class TPIController:
         return header + bytearray(body_bytes) + bytes([chk])
 
     def _send_command(self, body_bytes):
+        verbose=False
         pkt = self._build_packet(body_bytes)
-        print(f"Sending packet: {pkt.hex()}")
+        if verbose:
+            print(f"Sending packet: {pkt.hex()}")
         self.ser.reset_input_buffer()
         self.ser.write(pkt)
         return self._read_response()
 
     def _read_response(self):
+        verbose=False
         header = self.ser.read(4)
-        print(f"Header received: {header.hex()}")  # Print header bytes
+        if verbose:
+            print(f"Header received: {header.hex()}")  # Print header bytes
 
         if len(header) < 4:
             raise RuntimeError("Timeout waiting for response header.")
@@ -65,13 +69,15 @@ class TPIController:
 
         length = (header[2] << 8) | header[3]
         body = self.ser.read(length)
-        print(f"Body received: {body.hex()}")  # Print body bytes
+        if verbose:
+            print(f"Body received: {body.hex()}")  # Print body bytes
 
         if len(body) < length:
             raise RuntimeError("Timeout reading response body.")
 
         checksum = self.ser.read(1)
-        print(f"Checksum received: {checksum.hex()}")  # Print checksum byte
+        if verbose:
+            print(f"Checksum received: {checksum.hex()}")  # Print checksum byte
 
         if len(checksum) < 1:
             raise RuntimeError("Timeout reading checksum.")
