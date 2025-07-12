@@ -127,6 +127,17 @@ class TPIController:
         if resp[:2] != b'\x08\x0B':
             raise RuntimeError(f"Failed to set RF output state: {resp.hex()}")
 
+    def set_detector_state(self, on: bool):
+        """
+        Turns the detector ON or OFF.
+        Args:
+            on (bool): True to turn ON, False to turn OFF.
+        """
+        value = 1 if on else 0
+        resp = self._send_command([0x08, 0x0D, value])
+        if resp[:2] != b'\x08\x0D':
+            raise RuntimeError(f"Failed to set detector state: {resp.hex()}")
+
     def set_analyzer_parameters_v2(self, start_khz, stop_khz, step_khz, dwell_ms, num_points, auto_rf, max_points_per_packet, averages_per_point):
         """It may seem redundant to specify the number of points to measure as that
          information can be surmised from the stop frequency and the step frequency.

@@ -29,7 +29,7 @@ DWELL_MS = 20
 
 AUTO_RF = True
 MAX_POINTS_PER_PACKET = 40
-AVERAGES_PER_POINT = 1    #1-8 permitted
+AVERAGES_PER_POINT = 8    #1-8 permitted
 CAPTURE_DURATION = 0.1
 NUM_CAPTURES = 60
 
@@ -39,6 +39,7 @@ def calculate_num_points(start_khz, stop_khz, step_khz):
         raise ValueError(f"The calculated number of points ({num_points}) must be an integer. "
                         f"Please adjust start_khz ({start_khz}), stop_khz ({stop_khz}), "
                         f"or step_khz ({step_khz}) accordingly.")
+    print(f"Calculated number of points: {num_points}")
     return int(num_points)
 
 
@@ -77,6 +78,10 @@ def main():
     power = tpi.read_rf_power()
     print(f"Current RF output power: {power} dBm")
     # Turn RF ON
+
+    # Turn detector ON
+    print("Turning detector ON...")
+    tpi.set_detector_state(True)
 
     print("Turning RF ON...")
     tpi.set_rf_output_state(True)
@@ -118,6 +123,10 @@ def main():
     print("Turning RF OFF...")
     tpi.set_rf_output_state(False)
 
+    # Turn detector OFF
+    print("Turning detector OFF...")
+    tpi.set_detector_state(False)
+
     tpi.close()
     # Convert accumulated data to float values
     float_values = []
@@ -133,6 +142,15 @@ def main():
     print("\nConverted float values:")
     for i, value in enumerate(float_values):
         print(f"Value {i + 1}: {value}")
+
+    print("\nConverted values with frequencies:")
+    print("Frequency (kHz)    Level (dBm)")
+    print("--------------------------------")
+    for i, value in enumerate(float_values):
+        # Calculate the frequency for this point
+        freq = START_KHZ + (i * STEP_KHZ)
+        print(f"{freq:10d} kHz    {value:8.2f} dBm")
+
 
 
 if __name__ == "__main__":

@@ -1,22 +1,290 @@
+C:\Users\k\PycharmProjects\TP-1005\.venv\Scripts\python.exe C:\Users\k\PycharmProjects\TP-1005\Example2.py 
 Attempt 1 to open COM5...
 Serial port COM5 opened successfully.
+Enabling user mode...
+Sending packet: aa5500020702f4
+Header received: aa550012
+Body received: 07025450492d313030312d42202020202020
+Checksum received: d9
 Setting RF power to 0 dBm...
+Sending packet: aa550003080a00ea
+Header received: aa550003
+Body received: 080a00
+Checksum received: ea
 Setting analyzer parameters...
-Confirming parameters:
+Sending packet: aa550017083c6a8218009af718002c01000014006500000001280127
+Header received: aa550002
+Body received: 083c
+Checksum received: b9
+Confirming Analyzer parameters:
+Sending packet: aa550002073cba
+Header received: aa550017
+Body received: 073c6a8218009af718002c010000140065000000012801
+Checksum received: 28
 start_khz: 1606250
 stop_khz: 1636250
-step_khz: 5000
+step_khz: 300
 dwell_ms: 20
-num_points: 7
+num_points: 101
 auto_rf: 1
-max_points_per_packet: 50
+max_points_per_packet: 40
 averages_per_point: 1
+Reading current RF output power...
+Sending packet: aa550002070aec
+Header received: aa550003
+Body received: 070a00
+Checksum received: eb
+Current RF output power: 0 dBm
+Turning detector ON...
+Sending packet: aa550003080d01e6
+Header received: aa550002
+Body received: 080d
+Checksum received: e8
+Turning RF ON...
+Sending packet: aa550003080b01e8
+Header received: aa550002
+Body received: 080b
+Checksum received: ea
+Starting analyzer...
+Sending packet: aa550007083d0100e80300c7
+Header received: aa550002
+Body received: 083d
+Checksum received: b8
 Receiving analyzer data...
-Capturing raw data 60 times...
+Capturing raw data 60 times... -this is some arbitrary duration- that is long enough - loop stops when it RXs analyzer stopped
 
-Capture #2:
-Captured 43 bytes in 0.11 seconds
-aa55001d073e0600000000000060c2000060c2000060c2000060c2000060c2000060c2cbaa550002073fb7
+Capture #8:
+Captured 172 bytes in 0.11 seconds
+aa5500a5073e2800000000367a64c1064264c164b264c164b264c1367a64c1d60964c1281062c164b264c1367a64c1f45a65c1162963c1f45a65c1769963c1466163c1064264c1064264c1d60964c1367a64c1d60964c194ea64c1367a64c1a6d163c194ea64c1064264c1c42265c1b8b862c1064264c1d60964c1e6f062c1466163c1064264c1f45a65c1d60964c1064264c1162963c164b264c1840366c164b264c1064264c194ea64c111
+
+Capture #16:
+Captured 172 bytes in 0.11 seconds
+aa5500a5073e282800000094ea64c1840366c1249365c164b264c1d60964c1840366c1a6d163c1064264c194ea64c1840366c112ac66c1249365c1d60964c1a6d163c1f45a65c1c42265c1249365c164b264c164b264c142e466c1e27366c1c42265c154cb65c1b43b66c1840366c1c42265c1840366c1b43b66c1249365c1c42265c1249365c112ac66c1249365c1e27366c1a25467c194ea64c1f45a65c1840366c1249365c1e27366c12f
+
+Capture #20:
+Captured 99 bytes in 0.11 seconds
+aa550055073e1450000000840366c1d28c67c1249365c164b264c1b43b66c1b43b66c132fd67c1c42265c1d28c67c142e466c1840366c1d28c67c1e27366c112ac66c1721c67c154cb65c102c567c132fd67c112ac66c1d28c67c112aa550002073fb7
+Found packet ending with aa550002073fb7, exiting...
+
+Complete accumulated data (with preambles and checksums removed):
+Total bytes captured: 400
+367a64c1064264c164b264c164b264c1367a64c1d60964c1281062c164b264c1367a64c1f45a65c1162963c1f45a65c1769963c1466163c1064264c1064264c1d60964c1367a64c1d60964c194ea64c1367a64c1a6d163c194ea64c1064264c1c42265c1b8b862c1064264c1d60964c1e6f062c1466163c1064264c1f45a65c1d60964c1064264c1162963c164b264c1840366c164b264c1064264c194ea64c194ea64c1840366c1249365c164b264c1d60964c1840366c1a6d163c1064264c194ea64c1840366c112ac66c1249365c1d60964c1a6d163c1f45a65c1c42265c1249365c164b264c164b264c142e466c1e27366c1c42265c154cb65c1b43b66c1840366c1c42265c1840366c1b43b66c1249365c1c42265c1249365c112ac66c1249365c1e27366c1a25467c194ea64c1f45a65c1840366c1249365c1e27366c1840366c1d28c67c1249365c164b264c1b43b66c1b43b66c132fd67c1c42265c1d28c67c142e466c1840366c1d28c67c1e27366c112ac66c1721c67c154cb65c102c567c132fd67c112ac66c1d28c67c1
+Turning RF OFF...
+Sending packet: aa550003080b00e9
+Header received: aa550002
+Body received: 080b
+Checksum received: ea
+Turning detector OFF...
+Sending packet: aa550003080d00e7
+Header received: aa550002
+Body received: 080d
+Checksum received: e8
 Serial port closed.
+
+Converted float values:
+Value 1: -14.279836654663086
+Value 2: -14.266119003295898
+Value 3: -14.29355239868164
+Value 4: -14.29355239868164
+Value 5: -14.279836654663086
+Value 6: -14.252401351928711
+Value 7: -14.128944396972656
+Value 8: -14.29355239868164
+Value 9: -14.279836654663086
+Value 10: -14.334705352783203
+Value 11: -14.197530746459961
+Value 12: -14.334705352783203
+Value 13: -14.224966049194336
+Value 14: -14.211248397827148
+Value 15: -14.266119003295898
+Value 16: -14.266119003295898
+Value 17: -14.252401351928711
+Value 18: -14.279836654663086
+Value 19: -14.252401351928711
+Value 20: -14.307270050048828
+Value 21: -14.279836654663086
+Value 22: -14.238683700561523
+Value 23: -14.307270050048828
+Value 24: -14.266119003295898
+Value 25: -14.320987701416016
+Value 26: -14.170097351074219
+Value 27: -14.266119003295898
+Value 28: -14.252401351928711
+Value 29: -14.183813095092773
+Value 30: -14.211248397827148
+Value 31: -14.266119003295898
+Value 32: -14.334705352783203
+Value 33: -14.252401351928711
+Value 34: -14.266119003295898
+Value 35: -14.197530746459961
+Value 36: -14.29355239868164
+Value 37: -14.375858306884766
+Value 38: -14.29355239868164
+Value 39: -14.266119003295898
+Value 40: -14.307270050048828
+Value 41: -14.307270050048828
+Value 42: -14.375858306884766
+Value 43: -14.34842300415039
+Value 44: -14.29355239868164
+Value 45: -14.252401351928711
+Value 46: -14.375858306884766
+Value 47: -14.238683700561523
+Value 48: -14.266119003295898
+Value 49: -14.307270050048828
+Value 50: -14.375858306884766
+Value 51: -14.417009353637695
+Value 52: -14.34842300415039
+Value 53: -14.252401351928711
+Value 54: -14.238683700561523
+Value 55: -14.334705352783203
+Value 56: -14.320987701416016
+Value 57: -14.34842300415039
+Value 58: -14.29355239868164
+Value 59: -14.29355239868164
+Value 60: -14.430727005004883
+Value 61: -14.403291702270508
+Value 62: -14.320987701416016
+Value 63: -14.362140655517578
+Value 64: -14.389575958251953
+Value 65: -14.375858306884766
+Value 66: -14.320987701416016
+Value 67: -14.375858306884766
+Value 68: -14.389575958251953
+Value 69: -14.34842300415039
+Value 70: -14.320987701416016
+Value 71: -14.34842300415039
+Value 72: -14.417009353637695
+Value 73: -14.34842300415039
+Value 74: -14.403291702270508
+Value 75: -14.458162307739258
+Value 76: -14.307270050048828
+Value 77: -14.334705352783203
+Value 78: -14.375858306884766
+Value 79: -14.34842300415039
+Value 80: -14.403291702270508
+Value 81: -14.375858306884766
+Value 82: -14.471879959106445
+Value 83: -14.34842300415039
+Value 84: -14.29355239868164
+Value 85: -14.389575958251953
+Value 86: -14.389575958251953
+Value 87: -14.49931526184082
+Value 88: -14.320987701416016
+Value 89: -14.471879959106445
+Value 90: -14.430727005004883
+Value 91: -14.375858306884766
+Value 92: -14.471879959106445
+Value 93: -14.403291702270508
+Value 94: -14.417009353637695
+Value 95: -14.44444465637207
+Value 96: -14.362140655517578
+Value 97: -14.485597610473633
+Value 98: -14.49931526184082
+Value 99: -14.417009353637695
+Value 100: -14.471879959106445
+
+Converted values with frequencies:
+Frequency (kHz)    Level (dBm)
+--------------------------------
+   1606250 kHz      -14.28 dBm
+   1606550 kHz      -14.27 dBm
+   1606850 kHz      -14.29 dBm
+   1607150 kHz      -14.29 dBm
+   1607450 kHz      -14.28 dBm
+   1607750 kHz      -14.25 dBm
+   1608050 kHz      -14.13 dBm
+   1608350 kHz      -14.29 dBm
+   1608650 kHz      -14.28 dBm
+   1608950 kHz      -14.33 dBm
+   1609250 kHz      -14.20 dBm
+   1609550 kHz      -14.33 dBm
+   1609850 kHz      -14.22 dBm
+   1610150 kHz      -14.21 dBm
+   1610450 kHz      -14.27 dBm
+   1610750 kHz      -14.27 dBm
+   1611050 kHz      -14.25 dBm
+   1611350 kHz      -14.28 dBm
+   1611650 kHz      -14.25 dBm
+   1611950 kHz      -14.31 dBm
+   1612250 kHz      -14.28 dBm
+   1612550 kHz      -14.24 dBm
+   1612850 kHz      -14.31 dBm
+   1613150 kHz      -14.27 dBm
+   1613450 kHz      -14.32 dBm
+   1613750 kHz      -14.17 dBm
+   1614050 kHz      -14.27 dBm
+   1614350 kHz      -14.25 dBm
+   1614650 kHz      -14.18 dBm
+   1614950 kHz      -14.21 dBm
+   1615250 kHz      -14.27 dBm
+   1615550 kHz      -14.33 dBm
+   1615850 kHz      -14.25 dBm
+   1616150 kHz      -14.27 dBm
+   1616450 kHz      -14.20 dBm
+   1616750 kHz      -14.29 dBm
+   1617050 kHz      -14.38 dBm
+   1617350 kHz      -14.29 dBm
+   1617650 kHz      -14.27 dBm
+   1617950 kHz      -14.31 dBm
+   1618250 kHz      -14.31 dBm
+   1618550 kHz      -14.38 dBm
+   1618850 kHz      -14.35 dBm
+   1619150 kHz      -14.29 dBm
+   1619450 kHz      -14.25 dBm
+   1619750 kHz      -14.38 dBm
+   1620050 kHz      -14.24 dBm
+   1620350 kHz      -14.27 dBm
+   1620650 kHz      -14.31 dBm
+   1620950 kHz      -14.38 dBm
+   1621250 kHz      -14.42 dBm
+   1621550 kHz      -14.35 dBm
+   1621850 kHz      -14.25 dBm
+   1622150 kHz      -14.24 dBm
+   1622450 kHz      -14.33 dBm
+   1622750 kHz      -14.32 dBm
+   1623050 kHz      -14.35 dBm
+   1623350 kHz      -14.29 dBm
+   1623650 kHz      -14.29 dBm
+   1623950 kHz      -14.43 dBm
+   1624250 kHz      -14.40 dBm
+   1624550 kHz      -14.32 dBm
+   1624850 kHz      -14.36 dBm
+   1625150 kHz      -14.39 dBm
+   1625450 kHz      -14.38 dBm
+   1625750 kHz      -14.32 dBm
+   1626050 kHz      -14.38 dBm
+   1626350 kHz      -14.39 dBm
+   1626650 kHz      -14.35 dBm
+   1626950 kHz      -14.32 dBm
+   1627250 kHz      -14.35 dBm
+   1627550 kHz      -14.42 dBm
+   1627850 kHz      -14.35 dBm
+   1628150 kHz      -14.40 dBm
+   1628450 kHz      -14.46 dBm
+   1628750 kHz      -14.31 dBm
+   1629050 kHz      -14.33 dBm
+   1629350 kHz      -14.38 dBm
+   1629650 kHz      -14.35 dBm
+   1629950 kHz      -14.40 dBm
+   1630250 kHz      -14.38 dBm
+   1630550 kHz      -14.47 dBm
+   1630850 kHz      -14.35 dBm
+   1631150 kHz      -14.29 dBm
+   1631450 kHz      -14.39 dBm
+   1631750 kHz      -14.39 dBm
+   1632050 kHz      -14.50 dBm
+   1632350 kHz      -14.32 dBm
+   1632650 kHz      -14.47 dBm
+   1632950 kHz      -14.43 dBm
+   1633250 kHz      -14.38 dBm
+   1633550 kHz      -14.47 dBm
+   1633850 kHz      -14.40 dBm
+   1634150 kHz      -14.42 dBm
+   1634450 kHz      -14.44 dBm
+   1634750 kHz      -14.36 dBm
+   1635050 kHz      -14.49 dBm
+   1635350 kHz      -14.50 dBm
+   1635650 kHz      -14.42 dBm
+   1635950 kHz      -14.47 dBm
 
 Process finished with exit code 0
