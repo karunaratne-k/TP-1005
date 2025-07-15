@@ -299,6 +299,76 @@ def visualize_results(frequencies, power_levels):
         print(f"Error during visualization: {str(e)}")
 
 
+def evaluate_vswr_range(vswr_data: List[Tuple[int, float]],
+                        freq_low: int,
+                        freq_high: int,
+                        vswr_limit: float) -> bool:
+    """
+    Evaluate if VSWR measurements are below the specified limit within the given frequency range.
+    Uses linear interpolation between measurement points for accurate assessment.
+
+    Args:
+        vswr_data: List of tuples containing (frequency_khz, vswr_value)
+        freq_low: Lower frequency bound in kHz
+        freq_high: Upper frequency bound in kHz
+        vswr_limit: Maximum acceptable VSWR value
+
+    Returns:
+        bool: True if all VSWR values (including interpolated) are below limit, False otherwise
+    """
+    # Sort data by frequency to ensure proper interpolation
+    sorted_data = sorted(vswr_data, key=lambda x: x[0])
+
+    # Validate frequency range
+    min_freq = sorted_data[0][0]
+    max_freq = sorted_data[-1][0]
+    if freq_low < min_freq or freq_high > max_freq:
+        raise ValueError(f"Requested frequency range ({freq_low}-{freq_high} kHz) is outside "
+                         f"measured range ({min_freq}-{max_freq} kHz)")
+
+    # Find relevant measurement points within and adjacent to our frequency range
+    relevant_points = []
+    for i, (freq, vswr) in enumerate(sorted_data):
+        if freq >= freq_low or (i > 0 and sorted_data[i - 1][0] < freq_low):
+            relevant_points.append((freq, vswr))
+        if freq > freq_high:
+            break
+
+    # Check each segment
+    for i in range(len(relevant_points) - 1):
+        freq1, vswr1 = relevant_points[i]
+        freq2, vswr2 = relevant_points[i + 1]
+
+        # Skip if segment is entirely outside our range of interest
+        if freq1 > freq_high or freq2 < freq_low:
+            continue
+
+        # If either point exceeds limit, check if the interpolated values between them also exceed
+        if vswr1 > vswr_limit or vswr2 > vswr_limit:
+            # Calculate slope for interpolation
+            slope = (vswr2 - vswr1) / (freq2 - freq1)
+
+            # Determine check points: segment endpoints within our range
+            check_start = max(freq1, freq_low)
+            check_end = min(freq2, freq_high)
+
+            # Check interpolated values at endpoints of the relevant segment
+            vswr_start = vswr1 + slope * (check_start - freq1)
+            vswr_end = vswr1 + slope * (check_end - freq1)
+
+            if max(vswr_start, vswr_end) > vswr_limit:
+                print(f"VSWR limit exceeded between {check_start} kHz ({vswr_start:.2f}) "
+                      f"and {check_end} kHz ({vswr_end:.2f})")
+                return False
+
+            # If slope is not zero, check the peak/valley point if it falls within our segment
+            if abs(slope) > 0:
+                # No need to check intermediate points as linear interpolation means
+                # the maximum/minimum will be at the endpoints we already checked
+                pass
+
+    return True
+
 def main():
     """
     Main function to demonstrate the scanner functionality with visualization
@@ -307,7 +377,7 @@ def main():
     com_port = "COM5"
     start_khz = 1_606_250
     stop_khz = 1_636_250
-    step_khz = 1200
+    step_khz = 300
     dwell_ms = 20
     verbose = False
 
@@ -343,6 +413,15 @@ def main():
             # Separate frequencies and power levels
             frequencies = [r[0] for r in results_vswr]
             vswr = [r[1] for r in results_vswr]
+
+            vswr_data = list(zip(frequencies, vswr))
+
+            # Check if VSWR is below 1.5 between 1616000 kHz and 1626500 kHz
+            passed = evaluate_vswr_range(vswr_data, 1616000, 1626500, 1.5)
+            if passed:
+                print("VSWR test passed - all values within limits")
+            else:
+                print("VSWR test failed - limit exceeded")
 
             # Print summary
             print("\nScan Summary:")
