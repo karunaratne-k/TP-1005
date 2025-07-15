@@ -212,18 +212,16 @@ def get_highest_baseline(scanner: FrequencyScanner, start_khz: int, step_khz: in
         List of tuples containing (frequency_khz, value) for the highest baseline
     """
     baselines = []
+    baseline_averages = []
 
     print(f"Capturing {num_captures} baselines...")
     for i in range(num_captures):
-        print(f"Capturing baseline {i + 1}/{num_captures}")
         baseline = scanner.run(start_khz, step_khz)
-        baselines.append(baseline)
-
-    # Calculate average value for each baseline
-    baseline_averages = []
-    for baseline in baselines:
+        # Calculate average value for this baseline immediately
         values = [value for _, value in baseline]
         avg_value = sum(values) / len(values)
+        print(f"Capturing baseline {i + 1}/{num_captures}, average value: {avg_value:.2f} dBm")
+        baselines.append(baseline)
         baseline_averages.append(avg_value)
 
     # Find the baseline with highest average value
