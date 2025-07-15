@@ -181,41 +181,50 @@ def main():
     """
     Main function to demonstrate the scanner functionality with visualization
     """
-    # Scanner parameters
-    SCAN_PARAMS = {
-        "com_port": "COM5",
-        "start_khz": 1_606_250,
-        "stop_khz": 1_636_250,
-        "step_khz": 300,
-        "dwell_ms": 20,
-        "verbose": False
-    }
 
-    print("Starting frequency scan...")
-    print(f"Range: {SCAN_PARAMS['start_khz']} kHz to {SCAN_PARAMS['stop_khz']} kHz")
-    print(f"Step size: {SCAN_PARAMS['step_khz']} kHz")
+    com_port = "COM5"
+    start_khz = 1_606_250
+    stop_khz = 1_636_250
+    step_khz = 1200
+    dwell_ms = 20
+    verbose = False
+
+
+
+    scanner = FrequencyScanner(com_port, False)
+    scanner.setup(start_khz, stop_khz, step_khz, dwell_ms)
 
     try:
-        # Perform the scan
-        results = scan_frequency_range(**SCAN_PARAMS)
+        for i in range(10):
+            iteration_start = time.time()
 
-        # Separate frequencies and power levels
-        frequencies = [r[0] for r in results]
-        power_levels = [r[1] for r in results]
+            # Perform the scan
+            results =  scanner.run(start_khz, step_khz)
 
-        # Print summary
-        print("\nScan Summary:")
-        print(f"Points measured: {len(results)}")
-        print(f"Frequency range: {min(frequencies):,} kHz to {max(frequencies):,} kHz")
-        print(f"Power range: {min(power_levels):.2f} dBm to {max(power_levels):.2f} dBm")
 
-        # Create visualization in a separate function
-        visualize_results(frequencies, power_levels)
+            # Separate frequencies and power levels
+            frequencies = [r[0] for r in results]
+            power_levels = [r[1] for r in results]
+
+            # Print summary
+            print("\nScan Summary:")
+            print(f"Points measured: {len(results)}")
+            print(f"Frequency range: {min(frequencies):,} kHz to {max(frequencies):,} kHz")
+            print(f"Power range: {min(power_levels):.2f} dBm to {max(power_levels):.2f} dBm")
+            # Calculate and print timing
+            iteration_time = time.time() - iteration_start
+            print(f"Iteration time: {iteration_time:.2f} seconds")
+
+
+            # Create visualization in a separate function
+            visualize_results(frequencies, power_levels)
+            iteration_time = time.time() - iteration_start
+            print(f"Iteration time: {iteration_time:.2f} seconds")
 
     except Exception as e:
         print(f"Error during scan: {str(e)}")
         return False
-
+    scanner.shutdown()
     return True
 
 if __name__ == "__main__":
