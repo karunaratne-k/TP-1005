@@ -234,6 +234,34 @@ def get_highest_baseline(scanner: FrequencyScanner, start_khz: int, step_khz: in
     return highest_baseline
 
 
+def find_lowest_reflected_results(current_results: List[Tuple[int, float]],
+                                  previous_lowest_results: Optional[List[Tuple[int, float]]] = None) -> Tuple[
+    List[Tuple[int, float]], float]:
+    """
+    Determine if the current results have lower values than the previous lowest results.
+    Args:
+        current_results: Current scan results as list of (frequency, value) tuples
+        previous_lowest_results: Previous lowest results as list of (frequency, value) tuples, or None
+    Returns:
+        Tuple containing:
+            - List of (frequency, value) tuples representing the lowest results
+            - Average value of the lowest results
+    """
+    current_average = sum(value for _, value in current_results) / len(current_results)
+
+    if previous_lowest_results is None:
+        return current_results, current_average
+
+    lowest_average = sum(value for _, value in previous_lowest_results) / len(previous_lowest_results)
+
+    if current_average < lowest_average:
+        print(f"New lowest results found with average value: {current_average:.2f} dBm")
+        return current_results, current_average
+
+    print(f"Current results have higher average value than previous lowest results: {current_average:.2f} dBm > {lowest_average:.2f} dBm")
+    return previous_lowest_results, lowest_average
+
+
 def scan_frequency_range(com_port: str, start_khz: int, stop_khz: int,
                          step_khz: int, dwell_ms: int, verbose: bool = False) -> List[Tuple[int, float]]:
     """
@@ -293,26 +321,39 @@ def main():
     input('Disconnect Antenna and hit enter to continue:')
     baseline = get_highest_baseline(scanner, start_khz, step_khz)
     input('Connect Antenna and hit enter to continue:')
+
     try:
-        # Perform the scan
-        results_reflected =  scanner.run(start_khz, step_khz)
-        results_corrected = subtract_baseline(results_reflected, baseline)
 
-        results_vswr = process_vswr_data(results_corrected)
+        lowest_reflected_results = None
+        lowest_average = float('inf')
+
+        for i in range(10):
+            # Perform the scan
+            results_reflected =  scanner.run(start_khz, step_khz)
+
+            # Find lowest results
+            lowest_reflected_results, lowest_average = find_lowest_reflected_results(
+                results_reflected,
+                lowest_reflected_results
+            )
+
+            results_corrected = subtract_baseline(results_reflected, baseline)
+
+            results_vswr = process_vswr_data(results_corrected)
 
 
-        # Separate frequencies and power levels
-        frequencies = [r[0] for r in results_vswr]
-        vswr = [r[1] for r in results_vswr]
+            # Separate frequencies and power levels
+            frequencies = [r[0] for r in results_vswr]
+            vswr = [r[1] for r in results_vswr]
 
-        # Print summary
-        print("\nScan Summary:")
-        print(f"Points measured: {len(results_vswr)}")
-        print(f"Frequency range: {min(frequencies):,} kHz to {max(frequencies):,} kHz")
-        print(f"Power range: {min(vswr):.2f} dBm to {max(vswr):.2f} dBm")
+            # Print summary
+            print("\nScan Summary:")
+            print(f"Points measured: {len(results_vswr)}")
+            print(f"Frequency range: {min(frequencies):,} kHz to {max(frequencies):,} kHz")
+            print(f"Power range: {min(vswr):.2f} dBm to {max(vswr):.2f} dBm")
 
-        # Create visualization in a separate function
-        visualize_results(frequencies, vswr)
+            # Create visualization in a separate function
+            visualize_results(frequencies, vswr)
 
 
     except Exception as e:
