@@ -16,6 +16,66 @@ def calculate_num_points(start_khz, stop_khz, step_khz):
 
 
 
+
+def calculate_vswr(return_loss_db: float) -> float:
+    """
+    Convert return loss in dB to VSWR.
+
+    Args:
+        return_loss_db: Return loss in dB (positive value)
+
+    Returns:
+        VSWR value (always >= 1.0)
+    """
+    # Convert return loss to linear scale
+    reflection_coefficient = 10 ** (-abs(return_loss_db) / 20)
+    # Calculate VSWR
+    if reflection_coefficient == 1:
+        return float('inf')
+    return (1 + reflection_coefficient) / (1 - reflection_coefficient)
+
+
+def process_vswr_data(results: List[Tuple[int, float]]) -> List[Tuple[int, float]]:
+    """
+    Convert frequency and return loss measurements to frequency and VSWR.
+
+    Args:
+        results: List of tuples containing (frequency_khz, return_loss_db)
+
+    Returns:
+        List of tuples containing (frequency_khz, vswr)
+    """
+    return [(freq, calculate_vswr(return_loss)) for freq, return_loss in results]
+
+
+def subtract_baseline(results: List[Tuple[int, float]],
+                      baseline: List[Tuple[int, float]]) -> List[Tuple[int, float]]:
+    """
+    Subtract baseline values from results.
+
+    Args:
+        results: List of tuples containing (frequency_khz, value)
+        baseline: List of tuples containing (frequency_khz, value)
+
+    Returns:
+        List of tuples containing (frequency_khz, value_minus_baseline)
+    """
+    # Create a dictionary of baseline values keyed by frequency
+    baseline_dict = {freq: value for freq, value in baseline}
+
+    # Subtract baseline values from results
+    subtracted_results = []
+    for freq, value in results:
+        if freq in baseline_dict:
+            subtracted_value = value - baseline_dict[freq]
+            subtracted_results.append((freq, subtracted_value))
+        else:
+            # Handle case where frequency doesn't exist in baseline
+            subtracted_results.append((freq, value))
+
+    return subtracted_results
+
+
 class FrequencyScanner:
     # Constants that could be parameterized in future if needed
     RF_POWER_DBM = 0
@@ -137,6 +197,42 @@ class FrequencyScanner:
                 self.tpi.close()
                 self.tpi = None
 
+def get_highest_baseline(scanner: FrequencyScanner, start_khz: int, step_khz: int, num_captures: int = 10) -> List[
+    Tuple[int, float]]:
+    """
+    Capture multiple baseline measurements and return the one with highest values.
+
+    Args:
+        scanner: FrequencyScanner instance
+        start_khz: Start frequency in kHz
+        step_khz: Step size in kHz
+        num_captures: Number of baseline captures to perform
+
+    Returns:
+        List of tuples containing (frequency_khz, value) for the highest baseline
+    """
+    baselines = []
+
+    print(f"Capturing {num_captures} baselines...")
+    for i in range(num_captures):
+        print(f"Capturing baseline {i + 1}/{num_captures}")
+        baseline = scanner.run(start_khz, step_khz)
+        baselines.append(baseline)
+
+    # Calculate average value for each baseline
+    baseline_averages = []
+    for baseline in baselines:
+        values = [value for _, value in baseline]
+        avg_value = sum(values) / len(values)
+        baseline_averages.append(avg_value)
+
+    # Find the baseline with highest average value
+    highest_idx = baseline_averages.index(max(baseline_averages))
+    highest_baseline = baselines[highest_idx]
+
+    print(f"Selected baseline {highest_idx + 1} with average value: {baseline_averages[highest_idx]:.2f} dBm")
+    return highest_baseline
+
 
 def scan_frequency_range(com_port: str, start_khz: int, stop_khz: int,
                          step_khz: int, dwell_ms: int, verbose: bool = False) -> List[Tuple[int, float]]:
@@ -195,36 +291,29 @@ def main():
     scanner.setup(start_khz, stop_khz, step_khz, dwell_ms)
 
     input('Disconnect Antenna and hit enter to continue:')
-    baseline = scanner.run(start_khz, step_khz)
+    baseline = get_highest_baseline(scanner, start_khz, step_khz)
     input('Connect Antenna and hit enter to continue:')
     try:
-        for i in range(10):
-            iteration_start = time.time()
+        # Perform the scan
+        results_reflected =  scanner.run(start_khz, step_khz)
+        results_corrected = subtract_baseline(results_reflected, baseline)
 
-            # Perform the scan
-            scan_results =  scanner.run(start_khz, step_khz)
-
-            # Subtract baseline from results
-            results = [(freq, power - baseline[idx][1]) for idx, (freq, power) in enumerate(scan_results)]
-
-            # Separate frequencies and power levels
-            frequencies = [r[0] for r in results]
-            power_levels = [r[1] for r in results]
-
-            # Print summary
-            print("\nScan Summary:")
-            print(f"Points measured: {len(results)}")
-            print(f"Frequency range: {min(frequencies):,} kHz to {max(frequencies):,} kHz")
-            print(f"Power range: {min(power_levels):.2f} dBm to {max(power_levels):.2f} dBm")
-            # Calculate and print timing
-            iteration_time = time.time() - iteration_start
-            print(f"Iteration time: {iteration_time:.2f} seconds")
+        results_vswr = process_vswr_data(results_corrected)
 
 
-            # Create visualization in a separate function
-            visualize_results(frequencies, power_levels)
-            iteration_time = time.time() - iteration_start
-            print(f"Iteration time: {iteration_time:.2f} seconds")
+        # Separate frequencies and power levels
+        frequencies = [r[0] for r in results_vswr]
+        vswr = [r[1] for r in results_vswr]
+
+        # Print summary
+        print("\nScan Summary:")
+        print(f"Points measured: {len(results_vswr)}")
+        print(f"Frequency range: {min(frequencies):,} kHz to {max(frequencies):,} kHz")
+        print(f"Power range: {min(vswr):.2f} dBm to {max(vswr):.2f} dBm")
+
+        # Create visualization in a separate function
+        visualize_results(frequencies, vswr)
+
 
     except Exception as e:
         print(f"Error during scan: {str(e)}")
