@@ -194,13 +194,18 @@ def main():
     scanner = FrequencyScanner(com_port, False)
     scanner.setup(start_khz, stop_khz, step_khz, dwell_ms)
 
+    input('Disconnect Antenna and hit enter to continue:')
+    baseline = scanner.run(start_khz, step_khz)
+    input('Connect Antenna and hit enter to continue:')
     try:
         for i in range(10):
             iteration_start = time.time()
 
             # Perform the scan
-            results =  scanner.run(start_khz, step_khz)
+            scan_results =  scanner.run(start_khz, step_khz)
 
+            # Subtract baseline from results
+            results = [(freq, power - baseline[idx][1]) for idx, (freq, power) in enumerate(scan_results)]
 
             # Separate frequencies and power levels
             frequencies = [r[0] for r in results]
