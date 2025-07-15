@@ -374,10 +374,10 @@ def main():
     Main function to demonstrate the scanner functionality with visualization
     """
 
-    com_port = "COM5"
+    com_port = "COM6"
     start_khz = 1_606_250
     stop_khz = 1_636_250
-    step_khz = 300
+    step_khz = 600
     dwell_ms = 20
     verbose = False
 
