@@ -1,0 +1,94 @@
+constant is COMPORT  this will have a value such as COM6 and will be defined statically. This will be needed later.
+
+
+We are going to use tkinter
+Lets use a frame size of 1200 x 800
+Lets reserve the top 300 pixels for buttons and dialog and status displays
+Lets fill the rest with a plot that is titled VSWR
+
+In the upper area we will have several buttons and dialogs and status text fields, each of these needs to have an explicit XY location defined in a manner which I can adjust and edit
+There are two mandatory buttons - until they are pressed the rest of the buttons will be disabled:
+First button is a Toggle: Text is "E-Dot"  OR "E-Sq" this should drive a variable called "device_type" which will have a text value equivalent to the button text.
+Second button is also a Toggle: Text is "Element" OR "Final" this should drive a variable called "test_type" which will have a text value equivalent to the button text.
+Combine the two texts with a hypen
+so possible values would be one of the following 4:
+E-Dot-Final
+E-Dot Element
+E-Sq-Final
+E-Sq-Element
+
+Once the selection has been made
+
+Based on the 4 combinations we need to select a set of Scan_Params - lets put this in a function called get_params
+Here are values for "E-Dot-Final"
+    start_khz = 1_606_250
+    stop_khz = 1_636_250
+    step_khz = 600
+    dwell_ms = 20
+    vswr_start_khz = 1_616_000
+    vswr_stop_khz = 1_626_500
+    vswr_max = 1.5
+    filename_template = 'SERIAL_E-Dot-FINAL_VSWR-minF-nnnnnnn-VSWR-minV-m.mm_VSWR-min-x.xx_VSWR-mid-y.yy_VSWR-max-z.zz'
+    file_save_path = 'C:\data'
+
+    dont forget to provide default values that I can adjust later for E-Dot Element, E-Sq-Final and E-Sq-Element
+    Display the selected values apart from filename_template in a status box titled "RUN PARAMS"
+End Function.
+
+Next from Analyzer-Granular.py
+we run
+    scanner = FrequencyScanner(com_port, False)
+    scanner.setup(start_khz, stop_khz, step_khz, dwell_ms)
+
+Now a button will be enabled:
+BASELINE
+
+
+
+When BASELINE is clicked then
+    baseline = get_highest_baseline(scanner, start_khz, step_khz,10)  using Analyzer-Granular.py
+
+
+
+Here is a list of buttons that will now be enabled
+SCAN
+GOOD
+NEXT
+EXIT
+
+If SCAN is clicked AND WE are in ELEMENT then
+from Analyzer-Granular.py
+            frequencies = [r[0] for r in results_vswr]
+            vswr = [r[1] for r in results_vswr]
+
+            vswr_data = list(zip(frequencies, vswr))
+
+            # Check if VSWR is below vswr_max  between vswr_start_khz and vswr_stop_khz
+            passed = evaluate_vswr_range(vswr_data, vswr_start_khz, vswr_stop_khz, vswr_max)   NOTE make sure to foramt this data correctly
+            if passed:
+                print("VSWR test passed - all values within limits")   NOTE PUT THIS IN A STATUS BOX CALLED "TEST RESULTS"
+            else:
+                print("VSWR test failed - limit exceeded")  NOTE PUT THIS IN A STATUS BOX CALLED "TEST RESULTS"
+
+
+
+If SCAN is clicked AND WE are in FINAL then
+from Analyzer-Granular.py
+            frequencies = [r[0] for r in results_vswr]
+            vswr = [r[1] for r in results_vswr]
+
+            vswr_data = list(zip(frequencies, vswr))
+
+            # Check if VSWR is below vswr_max  between vswr_start_khz and vswr_stop_khz
+            passed = evaluate_vswr_range(vswr_data, vswr_start_khz, vswr_stop_khz, vswr_max)   NOTE make sure to foramt this data correctly
+            if passed:
+                print("VSWR test passed - all values within limits")   NOTE PUT THIS IN A STATUS BOX CALLED "TEST RESULTS"
+            else:
+                print("VSWR test failed - limit exceeded")  NOTE PUT THIS IN A STATUS BOX CALLED "TEST RESULTS"
+                And plot the data using
+
+If GOOD is clicked
+Then popup a modal dialog box with keyboard focus, accept 5 alpha characters - if enter is pressed in the dialog then close and return the value - this will be the SERIAL component of the filename
+
+Save the plot using the filename in the set path.
+

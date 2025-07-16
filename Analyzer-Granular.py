@@ -213,7 +213,6 @@ def get_highest_baseline(scanner: FrequencyScanner, start_khz: int, step_khz: in
     """
     baselines = []
     baseline_averages = []
-
     print(f"Capturing {num_captures} baselines...")
     for i in range(num_captures):
         baseline = scanner.run(start_khz, step_khz)
@@ -223,7 +222,6 @@ def get_highest_baseline(scanner: FrequencyScanner, start_khz: int, step_khz: in
         print(f"Capturing baseline {i + 1}/{num_captures}, average value: {avg_value:.2f} dBm")
         baselines.append(baseline)
         baseline_averages.append(avg_value)
-
     # Find the baseline with highest average value
     highest_idx = baseline_averages.index(max(baseline_averages))
     highest_baseline = baselines[highest_idx]
@@ -387,7 +385,7 @@ def main():
     scanner.setup(start_khz, stop_khz, step_khz, dwell_ms)
 
     input('Disconnect Antenna and hit enter to continue:')
-    baseline = get_highest_baseline(scanner, start_khz, step_khz)
+    baseline = get_highest_baseline(scanner, start_khz, step_khz,10)
     input('Connect Antenna and hit enter to continue:')
 
     try:
