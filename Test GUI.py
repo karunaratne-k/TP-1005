@@ -32,6 +32,9 @@ class VSWRAnalyzer(tk.Tk):
         self.continuous_scan = False
         self.after_id = None  # To store the ID of scheduled updates
         
+        # Add counter for consecutive passing scans
+        self.consecutive_passes = 0
+        
         # Variables
         self.device_type = tk.StringVar(value="E-Dot")
         self.test_type = tk.StringVar(value="Element")
@@ -230,6 +233,9 @@ class VSWRAnalyzer(tk.Tk):
     
         # Update continuous scanning based on test type
         self.update_continuous_scan()
+        
+        # Reset consecutive passes counter when changing modes
+        self.consecutive_passes = 0
 
     def update_continuous_scan(self):
         """Start or stop continuous scanning based on test type"""
@@ -557,7 +563,7 @@ class VSWRAnalyzer(tk.Tk):
                 params['step_khz']
             )
         
-            # Process the results if we have a baseline
+        # Process the results if we have a baseline
             if self.baseline is not None:
                 # Subtract baseline from raw results
                 baseline_corrected = subtract_baseline(raw_results, self.baseline)
@@ -581,8 +587,26 @@ class VSWRAnalyzer(tk.Tk):
                     params['vswr_max']
                 )
             
+                # Handle consecutive passes in Final mode
+                if self.test_type.get() == "Final":
+                    if passed:
+                        self.consecutive_passes += 1
+                        if self.consecutive_passes >= 5:
+                            # Stop continuous scanning
+                            self.continuous_scan = False
+                            # Store the last good data
+                            self.last_good_data = (frequencies, vswr)
+                            # Trigger GOOD button action
+                            self.mark_good()
+                            return
+                    else:
+                        # Reset counter if test fails
+                        self.consecutive_passes = 0
+            
                 # Update test results
-                result_text = "VSWR test passed - all values within limits" if passed else "VSWR test failed - limit exceeded"
+                result_text = f"VSWR test passed ({self.consecutive_passes}/5)" if passed else "VSWR test failed - limit exceeded"
+                if self.test_type.get() != "Final":
+                    result_text = "VSWR test passed" if passed else "VSWR test failed - limit exceeded"
                 self.update_test_results(result_text)
             
             else:
