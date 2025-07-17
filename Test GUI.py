@@ -6,7 +6,14 @@ from matplotlib.figure import Figure
 import os
 from typing import Dict, Tuple, List
 # Add these imports at the top of the file
-from Analyzer_Granular import FrequencyScanner, get_highest_baseline, evaluate_vswr_range
+from Analyzer_Granular import (
+    FrequencyScanner, 
+    get_highest_baseline,
+    subtract_baseline,
+    calculate_vswr,
+    process_vswr_data,
+    evaluate_vswr_range
+)
 import os
 
 COMPORT = "COM6"  # Static definition as requested
@@ -174,7 +181,7 @@ class VSWRAnalyzer(tk.Tk):
             "E-Dot-Final": {
                 "start_khz": 1_606_250,
                 "stop_khz": 1_636_250,
-                "step_khz": 600,
+                "step_khz": 1200,
                 "dwell_ms": 20,
                 "vswr_start_khz": 1_616_000,
                 "vswr_stop_khz": 1_626_500,
@@ -185,7 +192,7 @@ class VSWRAnalyzer(tk.Tk):
             "E-Dot-Element": {
                 "start_khz": 1_606_250,
                 "stop_khz": 1_636_250,
-                "step_khz": 600,
+                "step_khz": 1200,
                 "dwell_ms": 20,
                 "vswr_start_khz": 1_616_000,
                 "vswr_stop_khz": 1_626_500,
@@ -196,7 +203,7 @@ class VSWRAnalyzer(tk.Tk):
             "E-Sq-Final": {
                 "start_khz": 1_606_250,
                 "stop_khz": 1_636_250,
-                "step_khz": 600,
+                "step_khz": 1200,
                 "dwell_ms": 20,
                 "vswr_start_khz": 1_616_000,
                 "vswr_stop_khz": 1_626_500,
@@ -207,7 +214,7 @@ class VSWRAnalyzer(tk.Tk):
             "E-Sq-Element": {
                 "start_khz": 1_606_250,
                 "stop_khz": 1_636_250,
-                "step_khz": 600,
+                "step_khz": 1200,
                 "dwell_ms": 20,
                 "vswr_start_khz": 1_616_000,
                 "vswr_stop_khz": 1_626_500,
@@ -260,40 +267,54 @@ class VSWRAnalyzer(tk.Tk):
     def run_baseline(self):
         """Run baseline measurement"""
         try:
+            # Get baseline using the function from Analyzer_Granular
             self.baseline = get_highest_baseline(
                 self.scanner,
                 self.current_params['start_khz'],
                 self.current_params['step_khz'],
-                10
+                10  # Number of measurements to average
             )
             
-            # Enable other buttons after baseline is complete
+            # Enable scan button after baseline is captured
             self.scan_btn.config(state='normal')
-            self.good_btn.config(state='normal')
             
             # Update status
-            self.update_status("Baseline measurement complete")
+            self.update_test_results("Baseline measurement complete")
             
         except Exception as e:
             messagebox.showerror("Baseline Error", f"Failed to get baseline: {str(e)}")
+            self.scan_btn.config(state='disabled')
 
     def run_scan(self):
         """Run the VSWR scan"""
         try:
-            # Get scan results from scanner with required parameters
-            results_vswr = self.scanner.run(
+            if self.baseline is None:
+                messagebox.showerror("Error", "Baseline measurement required before scanning")
+                return
+                
+            # Get raw results from scanner
+            raw_results = self.scanner.run(
                 self.current_params['start_khz'],
                 self.current_params['step_khz']
             )
             
-            # Extract frequencies and VSWR values
-            frequencies = [r[0] for r in results_vswr]
-            vswr = [r[1] for r in results_vswr]
-            vswr_data = list(zip(frequencies, vswr))
+            # Subtract baseline from raw results
+            baseline_corrected = subtract_baseline(raw_results, self.baseline)
+            
+            # Convert return loss measurements to VSWR values
+            vswr_results = [(freq, calculate_vswr(return_loss)) 
+                           for freq, return_loss in baseline_corrected]
+            
+            # Store VSWR data for later use (needed for save_plot)
+            self.vswr_data = vswr_results
+            
+            # Extract frequencies and VSWR values for plotting
+            frequencies = [r[0] for r in vswr_results]
+            vswr = [r[1] for r in vswr_results]
             
             # Evaluate VSWR range
             passed = evaluate_vswr_range(
-                vswr_data,
+                vswr_results,
                 self.current_params['vswr_start_khz'],
                 self.current_params['vswr_stop_khz'],
                 self.current_params['vswr_max']
@@ -309,7 +330,10 @@ class VSWRAnalyzer(tk.Tk):
             # If in FINAL mode and test failed, highlight the plot
             if self.test_type.get() == "Final" and not passed:
                 self.highlight_failed_plot()
-            
+                
+            # Enable the GOOD button if test passed
+            self.good_btn.config(state='normal' if passed else 'disabled')
+                
         except Exception as e:
             messagebox.showerror("Scan Error", f"Failed to complete scan: {str(e)}")
 
