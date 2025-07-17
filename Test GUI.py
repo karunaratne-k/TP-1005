@@ -28,6 +28,10 @@ class VSWRAnalyzer(tk.Tk):
         self.title("VSWR Analyzer")
         self.geometry("1200x800")
         
+        # Add a variable to track continuous scanning
+        self.continuous_scan = False
+        self.after_id = None  # To store the ID of scheduled updates
+        
         # Variables
         self.device_type = tk.StringVar(value="E-Dot")
         self.test_type = tk.StringVar(value="Element")
@@ -210,7 +214,7 @@ class VSWRAnalyzer(tk.Tk):
             self.baseline_btn.config(state='disabled')
 
     def update_test_type_visibility(self):
-        """Show/hide Wet option based on device type"""
+        """Show/hide Wet option based on device type and handle continuous scanning"""
         if self.device_type.get() == "E-Dot":
             self.wet_radio.pack(side=tk.LEFT)
             # If currently "Wet" and switching to E-Sq, change to "Element"
@@ -218,6 +222,31 @@ class VSWRAnalyzer(tk.Tk):
             if self.test_type.get() == "Wet":
                 self.test_type.set("Element")
             self.wet_radio.pack_forget()
+    
+        # Update continuous scanning based on test type
+        self.update_continuous_scan()
+
+    def update_continuous_scan(self):
+        """Start or stop continuous scanning based on test type"""
+        test_type = self.test_type.get()
+        
+        # Cancel any existing scheduled updates
+        if self.after_id:
+            self.after_cancel(self.after_id)
+            self.after_id = None
+        
+        # Start continuous scanning for Element or Wet modes
+        if test_type in ["Element", "Wet"]:
+            self.continuous_scan = True
+            self.perform_continuous_scan()
+        else:
+            self.continuous_scan = False
+
+    def perform_continuous_scan(self):
+        """Perform a single scan and schedule the next one if continuous scanning is enabled"""
+        if self.continuous_scan:
+            self.perform_scan()  # Your existing scan function
+            self.after_id = self.after(100, self.perform_continuous_scan)  # Schedule next scan in 100ms
 
     def get_params(self, combined_type: str) -> dict:
         """Get scanning parameters based on the combined type"""
@@ -504,6 +533,72 @@ class VSWRAnalyzer(tk.Tk):
         self.baseline_btn.config(state='disabled')
         self.scan_btn.config(state='disabled')
         self.good_btn.config(state='disabled')
+
+    def perform_scan(self):
+        """Execute a single scan operation"""
+        if not hasattr(self, 'scanner') or not self.scanner:
+            return
+        
+        # Get scan parameters based on current mode
+        params = self.get_params(f"{self.device_type.get()}-{self.test_type.get()}")
+    
+        try:
+            # Use the run method instead of perform_scan
+            raw_results = self.scanner.run(
+                params['start_khz'],
+                params['step_khz']
+            )
+        
+            # Process the results if we have a baseline
+            if self.baseline is not None:
+                # Subtract baseline from raw results
+                baseline_corrected = subtract_baseline(raw_results, self.baseline)
+            
+                # Convert return loss measurements to VSWR values
+                vswr_results = [(freq, calculate_vswr(return_loss)) 
+                               for freq, return_loss in baseline_corrected]
+            
+                # Extract frequencies and VSWR values for plotting
+                frequencies = [r[0] for r in vswr_results]
+                vswr = [r[1] for r in vswr_results]
+            
+                # Update the plot
+                self.plot_vswr_data(frequencies, vswr)
+            
+                # Check VSWR limits
+                passed = evaluate_vswr_range(
+                    vswr_results,
+                    params['vswr_start_khz'],
+                    params['vswr_stop_khz'],
+                    params['vswr_max']
+                )
+            
+                # Update test results
+                result_text = "VSWR test passed - all values within limits" if passed else "VSWR test failed - limit exceeded"
+                self.update_test_results(result_text)
+            
+            else:
+                # If no baseline, just plot raw data
+                frequencies = [r[0] for r in raw_results]
+                values = [r[1] for r in raw_results]
+                self.plot_vswr_data(frequencies, values)
+            
+        except Exception as e:
+            print(f"Scan error: {str(e)}")
+            self.continuous_scan = False
+
+    def on_closing(self):
+        """Handle window closing"""
+        # Stop continuous scanning
+        self.continuous_scan = False
+        if self.after_id:
+            self.after_cancel(self.after_id)
+    
+        # Shutdown scanner and close
+        if hasattr(self, 'scanner') and self.scanner:
+            self.scanner.shutdown()
+    
+        self.quit()
 
 if __name__ == "__main__":
     app = VSWRAnalyzer()
