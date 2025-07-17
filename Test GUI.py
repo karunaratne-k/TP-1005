@@ -346,8 +346,6 @@ class VSWRAnalyzer(tk.Tk):
         # Add new label with parameters
         tk.Label(self.params_frame, text=params_text, justify='left').pack(padx=5, pady=5)
 
-    # Add these methods to the VSWRAnalyzer class
-
     def initialize_scanner(self):
         """Initialize the FrequencyScanner"""
         try:
@@ -389,61 +387,6 @@ class VSWRAnalyzer(tk.Tk):
         except Exception as e:
             messagebox.showerror("Baseline Error", f"Failed to get baseline: {str(e)}")
             self.scan_btn.config(state='disabled')
-
-    def run_scan(self):
-        """Run the VSWR scan"""
-        try:
-            if self.baseline is None:
-                messagebox.showerror("Error", "Baseline measurement required before scanning")
-                return
-                
-            # Get raw results from scanner
-            raw_results = self.scanner.run(
-                self.current_params['start_khz'],
-                self.current_params['step_khz']
-            )
-            
-            # Subtract baseline from raw results
-            baseline_corrected = subtract_baseline(raw_results, self.baseline)
-            
-            # Convert return loss measurements to VSWR values
-            vswr_results = [(freq, calculate_vswr(return_loss)) 
-                           for freq, return_loss in baseline_corrected]
-            
-            # Store VSWR data for later use (needed for save_plot)
-            self.vswr_data = vswr_results
-            
-            # Extract frequencies and VSWR values for plotting
-            frequencies = [r[0] for r in vswr_results]
-            vswr = [r[1] for r in vswr_results]
-            
-            # Evaluate VSWR range
-            passed = evaluate_vswr_range(
-                vswr_results,
-                self.current_params['vswr_start_khz'],
-                self.current_params['vswr_stop_khz'],
-                self.current_params['vswr_max']
-            )
-            
-            # Update test results display
-            result_text = "VSWR test passed - all values within limits" if passed else "VSWR test failed - limit exceeded"
-            self.update_test_results(result_text)
-            
-            # Plot the data
-            self.plot_vswr_data(frequencies, vswr)
-            
-            # If in FINAL mode and test failed, highlight the plot
-            if passed:
-                self.highlight_good_plot()
-            else:
-                self.highlight_failed_plot()
-            self.canvas.draw()  # Important: redraw the canvas to show changes
-
-            # Enable the SAVE button if test passed
-            # self.save_btn.config(state='normal' if passed else 'disabled')
-            self.save_btn.config(state='normal')
-        except Exception as e:
-            messagebox.showerror("Scan Error", f"Failed to complete scan: {str(e)}")
 
     def update_test_results(self, text):
         """Update the test results display"""
@@ -493,6 +436,9 @@ class VSWRAnalyzer(tk.Tk):
 
     def mark_save(self):
         """Handle SAVE button click"""
+        # Pause continuous scanning while saving
+        self.pause_continuous_scan()
+
         dialog = tk.Toplevel(self)
         dialog.title("Enter Serial Number")
         dialog.transient(self)
@@ -521,6 +467,9 @@ class VSWRAnalyzer(tk.Tk):
                 self.serial = serial
                 self.save_plot()
                 dialog.destroy()
+                # Resume continuous scanning after successful save
+                self.resume_continuous_scan()
+
             else:
                 messagebox.showerror("Invalid Input", "Please enter exactly 5 alpha characters")
         
@@ -637,8 +586,22 @@ class VSWRAnalyzer(tk.Tk):
         # Update the test results display
             self.update_test_results("")
 
+            # After successful save
+            self.serial = None  # Clear the serial number
+
+            # Reset counter and resume scanning if appropriate
+            self.consecutive_passes = 0
+            self.resume_continuous_scan()
+
+            # Update the test results display
+            self.update_test_results("")
+
+
         except Exception as e:
             messagebox.showerror("Error", f"Failed to save plot: {str(e)}")
+            # Make sure to resume scanning even if save fails
+            self.resume_continuous_scan()
+
 
     def exit_application(self):
         """Clean up and exit"""
@@ -770,6 +733,19 @@ class VSWRAnalyzer(tk.Tk):
             self.update_continuous_scan()
         else:
             self.perform_scan()  # Single scan for Final mode
+
+    def pause_continuous_scan(self):
+        """Temporarily pause continuous scanning"""
+        self.continuous_scan = False
+        if self.after_id:
+            self.after_cancel(self.after_id)
+            self.after_id = None
+
+    def resume_continuous_scan(self):
+        """Resume continuous scanning if in Element or Wet mode"""
+        if self.test_type.get() in ["Element", "Wet"]:
+            self.continuous_scan = True
+            self.perform_continuous_scan()
 
 if __name__ == "__main__":
     app = VSWRAnalyzer()
