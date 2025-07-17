@@ -53,11 +53,10 @@ When BASELINE is clicked then
 Here is a list of buttons that will now be enabled
 SCAN
 GOOD
-NEXT
 EXIT
 
 If SCAN is clicked AND WE are in ELEMENT then
-from Analyzer-Granular.py
+using Analyzer-Granular.py
             frequencies = [r[0] for r in results_vswr]
             vswr = [r[1] for r in results_vswr]
 
@@ -73,7 +72,7 @@ from Analyzer-Granular.py
 
 
 If SCAN is clicked AND WE are in FINAL then
-from Analyzer-Granular.py
+using Analyzer-Granular.py
             frequencies = [r[0] for r in results_vswr]
             vswr = [r[1] for r in results_vswr]
 
@@ -90,5 +89,10 @@ from Analyzer-Granular.py
 If GOOD is clicked
 Then popup a modal dialog box with keyboard focus, accept 5 alpha characters - if enter is pressed in the dialog then close and return the value - this will be the SERIAL component of the filename
 
-Save the plot using the filename in the set path.
+Save the plot using the created filename in the set path.
 
+If the EXIT button is pressed then
+using Analyzer-Granular.py
+    scanner.shutdown()
+
+    then exit the program.
