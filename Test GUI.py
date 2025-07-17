@@ -61,15 +61,57 @@ class VSWRAnalyzer(tk.Tk):
         )
         self.device_btn.place(x=10, y=10)
         
-        # Test Type Toggle Button
-        self.test_btn = tk.Button(
-            self.control_frame,
-            textvariable=self.test_type,
-            command=self.toggle_test_type,
+        # # Test Type Toggle Button
+        # self.test_btn = tk.Button(
+        #     self.control_frame,
+        #     textvariable=self.test_type,
+        #     command=self.toggle_test_type,
+        #     width=10
+        # )
+        # self.test_btn.place(x=120, y=10)
+
+        # Create device type button
+        self.device_btn = tk.Button(
+            self,
+            textvariable=self.device_type,
+            command=self.toggle_device_type,
             width=10
         )
-        self.test_btn.place(x=120, y=10)
-        
+        self.device_btn.place(x=10, y=10)
+
+        # Create three separate radio buttons for test type
+        self.test_type_frame = tk.Frame(self)
+        self.test_type_frame.place(x=120, y=10)
+
+        self.element_radio = tk.Radiobutton(
+            self.test_type_frame,
+            text="Element",
+            variable=self.test_type,
+            value="Element",
+            command=self.update_combined_type
+        )
+        self.element_radio.pack(side=tk.LEFT)
+
+        self.wet_radio = tk.Radiobutton(
+            self.test_type_frame,
+            text="Wet",
+            variable=self.test_type,
+            value="Wet",
+            command=self.update_combined_type
+        )
+        self.wet_radio.pack(side=tk.LEFT)
+
+        self.final_radio = tk.Radiobutton(
+            self.test_type_frame,
+            text="Final",
+            variable=self.test_type,
+            value="Final",
+            command=self.update_combined_type
+        )
+        self.final_radio.pack(side=tk.LEFT)
+
+        self.update_test_type_visibility()
+
         # Combined type display
         self.type_label = tk.Label(
             self.control_frame,
@@ -143,6 +185,7 @@ class VSWRAnalyzer(tk.Tk):
         """Toggle between E-Dot and E-Sq"""
         current = self.device_type.get()
         self.device_type.set("E-Sq" if current == "E-Dot" else "E-Dot")
+        self.update_test_type_visibility()
         self.update_combined_type()
 
     def toggle_test_type(self):
@@ -174,7 +217,17 @@ class VSWRAnalyzer(tk.Tk):
         except Exception as e:
             messagebox.showerror("Scanner Error", f"Failed to initialize scanner: {str(e)}")
             self.baseline_btn.config(state='disabled')
-        
+
+    def update_test_type_visibility(self):
+        """Show/hide Wet option based on device type"""
+        if self.device_type.get() == "E-Dot":
+            self.wet_radio.pack(side=tk.LEFT)
+            # If currently "Wet" and switching to E-Sq, change to "Element"
+        else:
+            if self.test_type.get() == "Wet":
+                self.test_type.set("Element")
+            self.wet_radio.pack_forget()
+
     def get_params(self, combined_type: str) -> dict:
         """Get scanning parameters based on the combined type"""
         params = {
@@ -188,6 +241,17 @@ class VSWRAnalyzer(tk.Tk):
                 "vswr_max": 1.5,
                 "filename_template": "SERIAL_E-Dot-FINAL_VSWR-minF-nnnnnnn-VSWR-minV-m.mm_VSWR-min-x.xx_VSWR-mid-y.yy_VSWR-max-z.zz",
                 "file_save_path": "C:\\data"
+            },
+            "E-Dot-Wet": {
+                "start_khz": 1_606_250,
+                "stop_khz": 1_636_250,
+                "step_khz": 300,
+                "dwell_ms": 20,
+                "vswr_start_khz": 1_616_000,
+                "vswr_stop_khz": 1_626_500,
+                "vswr_max": 2.0,
+                "filename_template": 'SERIAL_E-Dot-WET_VSWR-minF-nnnnnnn-VSWR-minV-m.mm_VSWR-min-x.xx_VSWR-mid-y.yy_VSWR-max-z.zz',
+                "file_save_path": 'C:\\data'
             },
             "E-Dot-Element": {
                 "start_khz": 1_606_250,
