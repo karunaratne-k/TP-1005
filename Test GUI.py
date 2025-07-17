@@ -475,8 +475,22 @@ class VSWRAnalyzer(tk.Tk):
         dialog.transient(self)
         dialog.grab_set()
         
-        entry = tk.Entry(dialog)
-        entry.pack(padx=20, pady=10)
+        # Make dialog 4 times larger
+        dialog_width = 400  # Original was about 100
+        dialog_height = 200  # Original was about 50
+        dialog.geometry(f"{dialog_width}x{dialog_height}")
+        
+        # Create a frame with padding
+        frame = tk.Frame(dialog, padx=20, pady=20)
+        frame.pack(expand=True, fill='both')
+        
+        # Add a label with larger font
+        label = tk.Label(frame, text="Enter 5-character Serial Number:", font=('Arial', 14))
+        label.pack(pady=(0, 20))
+        
+        # Create entry with larger font
+        entry = tk.Entry(frame, font=('Arial', 24), width=10, justify='center')
+        entry.pack()
         
         def validate_and_save(event=None):
             serial = entry.get().upper()
@@ -488,6 +502,28 @@ class VSWRAnalyzer(tk.Tk):
                 messagebox.showerror("Invalid Input", "Please enter exactly 5 alpha characters")
         
         entry.bind('<Return>', validate_and_save)
+        
+        # Center the dialog on the main window
+        def center_dialog():
+            # Wait for dialog to be rendered
+            dialog.update_idletasks()
+            
+            # Get main window position and dimensions
+            main_x = self.winfo_x()
+            main_y = self.winfo_y()
+            main_width = self.winfo_width()
+            main_height = self.winfo_height()
+            
+            # Calculate position for dialog
+            x = main_x + (main_width - dialog_width) // 2
+            y = main_y + (main_height - dialog_height) // 2
+            
+            # Set dialog position
+            dialog.geometry(f"+{x}+{y}")
+        
+        # Schedule centering after dialog is fully created
+        self.after(10, center_dialog)
+        
         entry.focus_set()
 
     def save_plot(self):
