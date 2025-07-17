@@ -58,6 +58,9 @@ class VSWRAnalyzer(tk.Tk):
         # Initially disable buttons that require selection
         self.update_button_states()
         
+        # Add storage for VSWR data
+        self.vswr_data = None
+        
     def setup_control_area(self):
         # Device Type Toggle Button
         self.device_btn = tk.Button(
@@ -591,30 +594,30 @@ class VSWRAnalyzer(tk.Tk):
         
         # Get scan parameters based on current mode
         params = self.get_params(f"{self.device_type.get()}-{self.test_type.get()}")
-    
+        
         try:
             # Use the run method instead of perform_scan
             raw_results = self.scanner.run(
                 params['start_khz'],
                 params['step_khz']
             )
-        
-        # Process the results if we have a baseline
+            
+            # Process the results if we have a baseline
             if self.baseline is not None:
                 # Subtract baseline from raw results
                 baseline_corrected = subtract_baseline(raw_results, self.baseline)
-            
+                
                 # Convert return loss measurements to VSWR values
                 vswr_results = [(freq, calculate_vswr(return_loss)) 
                                for freq, return_loss in baseline_corrected]
-            
+                
                 # Extract frequencies and VSWR values for plotting
                 frequencies = [r[0] for r in vswr_results]
                 vswr = [r[1] for r in vswr_results]
-            
+                
                 # Update the plot
                 self.plot_vswr_data(frequencies, vswr)
-            
+                
                 # Check VSWR limits
                 passed = evaluate_vswr_range(
                     vswr_results,
@@ -622,35 +625,35 @@ class VSWRAnalyzer(tk.Tk):
                     params['vswr_stop_khz'],
                     params['vswr_max']
                 )
-            
+                
                 # Handle consecutive passes in Final mode
                 if self.test_type.get() == "Final":
                     if passed:
                         self.consecutive_passes += 1
+                        # Store the successful VSWR data
+                        self.vswr_data = vswr_results
                         if self.consecutive_passes >= 5:
                             # Stop continuous scanning
                             self.continuous_scan = False
-                            # Store the last good data
-                            self.last_good_data = (frequencies, vswr)
                             # Trigger GOOD button action
                             self.mark_good()
                             return
                     else:
                         # Reset counter if test fails
                         self.consecutive_passes = 0
-            
+                
                 # Update test results
                 result_text = f"VSWR test passed ({self.consecutive_passes}/5)" if passed else "VSWR test failed - limit exceeded"
                 if self.test_type.get() != "Final":
                     result_text = "VSWR test passed" if passed else "VSWR test failed - limit exceeded"
                 self.update_test_results(result_text)
-            
+                
             else:
                 # If no baseline, just plot raw data
                 frequencies = [r[0] for r in raw_results]
                 values = [r[1] for r in raw_results]
                 self.plot_vswr_data(frequencies, values)
-            
+                
         except Exception as e:
             print(f"Scan error: {str(e)}")
             self.continuous_scan = False
