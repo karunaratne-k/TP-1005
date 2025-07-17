@@ -172,6 +172,11 @@ class VSWRAnalyzer(tk.Tk):
         self.figure = Figure(figsize=(12, 5))
         self.ax = self.figure.add_subplot(111)
         self.ax.set_title("VSWR")
+        self.ax.set_xlabel("Frequency (kHz)")
+        self.ax.set_ylabel("VSWR")
+        
+        # Set fixed Y-axis limits
+        self.ax.set_ylim(1.0, 2.0)
         
         self.canvas = FigureCanvasTkAgg(self.figure, self.plot_frame)
         self.canvas.get_tk_widget().pack(fill='both', expand=True)
@@ -438,6 +443,9 @@ class VSWRAnalyzer(tk.Tk):
         self.ax.set_xlabel("Frequency (kHz)")
         self.ax.set_ylabel("VSWR")
         self.ax.grid(True)
+        
+        # Set fixed Y-axis limits after clearing
+        self.ax.set_ylim(1.0, 2.0)
         
         # Add horizontal line at vswr_max
         self.ax.axhline(y=self.current_params['vswr_max'], color='r', linestyle='--', label='VSWR Max')
