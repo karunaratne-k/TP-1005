@@ -738,7 +738,9 @@ class VSWRAnalyzer(tk.Tk):
                 frequencies = [r[0] for r in raw_results]
                 values = [r[1] for r in raw_results]
                 self.plot_vswr_data(frequencies, values)
-            
+
+            self.save_btn.config(state='normal') #allow saving
+
         except Exception as e:
             print(f"Scan error: {str(e)}")
             self.continuous_scan = False
@@ -767,7 +769,7 @@ class VSWRAnalyzer(tk.Tk):
         if test_type in ["Element", "Wet"]:
             self.update_continuous_scan()
         else:
-            self.run_scan()  # Single scan for Final mode
+            self.perform_scan()  # Single scan for Final mode
 
 if __name__ == "__main__":
     app = VSWRAnalyzer()
