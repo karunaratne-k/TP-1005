@@ -60,15 +60,6 @@ class VSWRAnalyzer(tk.Tk):
             width=10
         )
         self.device_btn.place(x=10, y=10)
-        
-        # # Test Type Toggle Button
-        # self.test_btn = tk.Button(
-        #     self.control_frame,
-        #     textvariable=self.test_type,
-        #     command=self.toggle_test_type,
-        #     width=10
-        # )
-        # self.test_btn.place(x=120, y=10)
 
         # Create device type button
         self.device_btn = tk.Button(
@@ -117,7 +108,7 @@ class VSWRAnalyzer(tk.Tk):
             self.control_frame,
             textvariable=self.combined_type
         )
-        self.type_label.place(x=230, y=10)
+        self.type_label.place(x=230, y=30)
         
         # Run Parameters Display
         self.params_frame = tk.LabelFrame(
