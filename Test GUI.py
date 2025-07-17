@@ -152,7 +152,7 @@ class VSWRAnalyzer(tk.Tk):
         self.scan_btn = tk.Button(
             self.control_frame,
             text="SCAN",
-            command=self.run_scan,
+            command=self.on_scan_click,
             state='disabled',
             width=10
         )
@@ -377,8 +377,14 @@ class VSWRAnalyzer(tk.Tk):
             # Enable scan button after baseline is captured
             self.scan_btn.config(state='normal')
             
+            # Ensure continuous scan is off until user clicks SCAN
+            self.continuous_scan = False
+            if hasattr(self, 'after_id') and self.after_id:
+                self.after_cancel(self.after_id)
+                self.after_id = None
+            
             # Update status
-            self.update_test_results("Baseline measurement complete")
+            self.update_test_results("Baseline measurement complete - Click SCAN to proceed")
             
         except Exception as e:
             messagebox.showerror("Baseline Error", f"Failed to get baseline: {str(e)}")
@@ -731,6 +737,19 @@ class VSWRAnalyzer(tk.Tk):
             self.scanner.shutdown()
     
         self.quit()
+
+    def on_scan_click(self):
+        """Handler for scan button click"""
+        if self.baseline is None:
+            messagebox.showerror("Error", "Baseline measurement required before scanning")
+            return
+            
+        # Now explicitly start continuous scanning if in Element/Wet mode
+        test_type = self.test_type.get()
+        if test_type in ["Element", "Wet"]:
+            self.update_continuous_scan()
+        else:
+            self.run_scan()  # Single scan for Final mode
 
 if __name__ == "__main__":
     app = VSWRAnalyzer()
