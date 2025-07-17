@@ -158,14 +158,14 @@ class VSWRAnalyzer(tk.Tk):
         )
         self.scan_btn.place(x=120, y=260)
         
-        self.good_btn = tk.Button(
+        self.save_btn = tk.Button(
             self.control_frame,
-            text="GOOD",
-            command=self.mark_good,
+            text="SAVE",
+            command=self.mark_save,
             state='disabled',
             width=10
         )
-        self.good_btn.place(x=230, y=260)
+        self.save_btn.place(x=230, y=260)
         
         self.exit_btn = tk.Button(
             self.control_frame,
@@ -436,9 +436,9 @@ class VSWRAnalyzer(tk.Tk):
             if self.test_type.get() == "Final" and not passed:
                 self.highlight_failed_plot()
                 
-            # Enable the GOOD button if test passed
-            self.good_btn.config(state='normal' if passed else 'disabled')
-                
+            # Enable the SAVE button if test passed
+            # self.save_btn.config(state='normal' if passed else 'disabled')
+            self.save_btn.config(state='normal')
         except Exception as e:
             messagebox.showerror("Scan Error", f"Failed to complete scan: {str(e)}")
 
@@ -478,8 +478,8 @@ class VSWRAnalyzer(tk.Tk):
         self.ax.set_facecolor('mistyrose')
         self.canvas.draw()
 
-    def mark_good(self):
-        """Handle GOOD button click"""
+    def mark_save(self):
+        """Handle SAVE button click"""
         dialog = tk.Toplevel(self)
         dialog.title("Enter Serial Number")
         dialog.transient(self)
@@ -645,7 +645,7 @@ class VSWRAnalyzer(tk.Tk):
         # Initially all buttons except device/test type are disabled
         self.baseline_btn.config(state='disabled')
         self.scan_btn.config(state='disabled')
-        self.good_btn.config(state='disabled')
+        self.save_btn.config(state='disabled')
 
     def perform_scan(self):
         """Execute a single scan operation"""
@@ -702,8 +702,8 @@ class VSWRAnalyzer(tk.Tk):
                             self.continuous_scan = False
                             # Make sure we use the last successful scan data
                             self.vswr_data = self.last_scan_data
-                            # Trigger GOOD button action
-                            self.mark_good()
+                            # Trigger SAVE button action
+                            self.mark_save()
                             return
                     else:
                         # Reset counter if test fails
