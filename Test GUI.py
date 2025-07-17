@@ -433,9 +433,12 @@ class VSWRAnalyzer(tk.Tk):
             self.plot_vswr_data(frequencies, vswr)
             
             # If in FINAL mode and test failed, highlight the plot
-            if self.test_type.get() == "Final" and not passed:
+            if passed:
+                self.highlight_good_plot()
+            else:
                 self.highlight_failed_plot()
-                
+            self.canvas.draw()  # Important: redraw the canvas to show changes
+
             # Enable the SAVE button if test passed
             # self.save_btn.config(state='normal' if passed else 'disabled')
             self.save_btn.config(state='normal')
@@ -476,6 +479,16 @@ class VSWRAnalyzer(tk.Tk):
     def highlight_failed_plot(self):
         """Add red background to plot for failed tests"""
         self.ax.set_facecolor('mistyrose')
+        self.canvas.draw()
+
+    def highlight_good_plot(self):
+        """Add green background to plot for passing tests"""
+        self.ax.set_facecolor('lightgreen')
+        self.canvas.draw()
+
+    def highlight_normal_plot(self):
+        """Add white background to plot for normal times tests"""
+        self.ax.set_facecolor('white')
         self.canvas.draw()
 
     def mark_save(self):
@@ -688,6 +701,11 @@ class VSWRAnalyzer(tk.Tk):
                     params['vswr_stop_khz'],
                     params['vswr_max']
                 )
+                
+                if passed:
+                    self.highlight_good_plot()
+                else:
+                    self.highlight_failed_plot()
                 
                 # Store last successful scan data if passed
                 if passed:
