@@ -500,11 +500,11 @@ class VSWRAnalyzer(tk.Tk):
 
     def save_plot(self):
         """Save the plot with the correct filename"""
-        try:
-            if not self.serial:
-                messagebox.showerror("Error", "No serial number provided")
-                return
+        if not self.serial:
+            messagebox.showerror("Error", "No serial number provided")
+            return
 
+        try:
             # Calculate min, max, and mid VSWR values
             vswr_values = [v[1] for v in self.vswr_data]
             min_vswr = min(vswr_values)
@@ -524,7 +524,7 @@ class VSWRAnalyzer(tk.Tk):
             filename = filename.replace('y.yy', f"{mid_vswr:.2f}")
             filename = filename.replace('z.zz', f"{max_vswr:.2f}")
 
-        # Add .png extension
+            # Add .png extension
             save_path = os.path.join(self.current_params['file_save_path'], filename + '.png')
 
             # Ensure directory exists
@@ -532,75 +532,72 @@ class VSWRAnalyzer(tk.Tk):
 
             # Save the plot
             self.figure.savefig(save_path, bbox_inches='tight', dpi=300)
-        
-        # Create custom confirmation dialog
-            dialog = tk.Toplevel(self)
-            dialog.title("Success")
-        
-        # Set size 4x larger than default
-            dialog_width = 400
-            dialog_height = 200
-            dialog.geometry(f"{dialog_width}x{dialog_height}")
-        
-        # Make dialog modal
-            dialog.transient(self)
-            dialog.grab_set()
-        
-        # Configure dialog
-            dialog.configure(bg='white')
-            dialog.resizable(False, False)
-        
-        # Add message with larger font
-            message = tk.Label(dialog, 
-                         text=f"Plot saved successfully as:\n\n{save_path}",
-                         font=('TkDefaultFont', 12),
-                         wraplength=350,
-                         justify='center',
-                         bg='white')
-            message.pack(expand=True, pady=20)
-        
-        # Add OK button with larger font
-            ok_button = tk.Button(dialog, 
-                            text="OK",
-                            command=dialog.destroy,
-                            width=20,
-                            font=('TkDefaultFont', 10))
-            ok_button.pack(pady=20)
-        
-        # Center dialog in main window
-            self.update_idletasks()
-            x = self.winfo_x() + (self.winfo_width() - dialog_width) // 2
-            y = self.winfo_y() + (self.winfo_height() - dialog_height) // 2
-            dialog.geometry(f"+{x}+{y}")
-        
-        # Wait for dialog to be closed
-            self.wait_window(dialog)
-        
-        # Reset counter and restart continuous scanning if in Final mode
+            
+            # Create and show the confirmation dialog
+            self.show_save_confirmation_dialog(save_path)
+            
+            # Cleanup and resume scanning
             self.consecutive_passes = 0
             self.serial = None  # Clear the serial number
+            
+            # Resume continuous scanning if appropriate
             if self.test_type.get() == "Final":
                 self.continuous_scan = True
-                self.after(100, self.perform_scan)
-        
-        # Update the test results display
-            self.update_test_results("")
-
-            # After successful save
-            self.serial = None  # Clear the serial number
-
-            # Reset counter and resume scanning if appropriate
-            self.consecutive_passes = 0
-            self.resume_continuous_scan()
+                self.perform_scan()
+            else:
+                self.resume_continuous_scan()
 
             # Update the test results display
             self.update_test_results("")
-
 
         except Exception as e:
             messagebox.showerror("Error", f"Failed to save plot: {str(e)}")
             # Make sure to resume scanning even if save fails
             self.resume_continuous_scan()
+
+    def show_save_confirmation_dialog(self, save_path):
+        """Show confirmation dialog after successful save"""
+        dialog = tk.Toplevel(self)
+        dialog.title("Success")
+        
+        # Set size 4x larger than default
+        dialog_width = 400
+        dialog_height = 200
+        dialog.geometry(f"{dialog_width}x{dialog_height}")
+        
+        # Make dialog modal
+        dialog.transient(self)
+        dialog.grab_set()
+        
+        # Configure dialog
+        dialog.configure(bg='white')
+        dialog.resizable(False, False)
+        
+        # Add message with larger font
+        message = tk.Label(dialog, 
+                          text=f"Plot saved successfully as:\n\n{save_path}",
+                          font=('TkDefaultFont', 12),
+                          wraplength=350,
+                          justify='center',
+                          bg='white')
+        message.pack(expand=True, pady=20)
+        
+        # Add OK button with larger font
+        ok_button = tk.Button(dialog, 
+                             text="OK",
+                             command=dialog.destroy,
+                             width=20,
+                             font=('TkDefaultFont', 10))
+        ok_button.pack(pady=20)
+        
+        # Center dialog in main window
+        self.update_idletasks()
+        x = self.winfo_x() + (self.winfo_width() - dialog_width) // 2
+        y = self.winfo_y() + (self.winfo_height() - dialog_height) // 2
+        dialog.geometry(f"+{x}+{y}")
+        
+        # Wait for dialog to be closed
+        self.wait_window(dialog)
 
 
     def exit_application(self):
