@@ -529,6 +529,7 @@ class VSWRAnalyzer(tk.Tk):
 
         except Exception as e:
             messagebox.showerror("Error", f"Failed to save plot: {str(e)}")
+            # DO NOT add any scanning logic here
 
     def show_save_confirmation_dialog(self, save_path):
         """Show confirmation dialog after successful save"""
@@ -686,6 +687,7 @@ class VSWRAnalyzer(tk.Tk):
         self.continuous_scan = False
         if self.after_id:
             self.after_cancel(self.after_id)
+            self.after_id = None
     
         # Shutdown scanner and close
         if hasattr(self, 'scanner') and self.scanner:
@@ -709,6 +711,7 @@ class VSWRAnalyzer(tk.Tk):
             self.continuous_scan = True
             self.perform_continuous_scan()
         else:
+            self.continuous_scan = False
             self.perform_scan()
 
     def pause_continuous_scan(self):
@@ -719,22 +722,27 @@ class VSWRAnalyzer(tk.Tk):
             self.after_id = None
 
     def resume_continuous_scan(self):
-        """Resume continuous scanning if in Element or Wet mode"""
-        if self.test_type.get() in ["Element", "Wet"]:
+        """Resume continuous scanning if in continuous mode"""
+        if self.scan_mode.get() == "Continuous":
             self.continuous_scan = True
             self.perform_continuous_scan()
 
     def toggle_scan_mode(self):
         """Toggle between Single and Continuous scan modes"""
         current = self.scan_mode.get()
-        self.scan_mode.set("Continuous" if current == "Single" else "Single")
+        new_mode = "Continuous" if current == "Single" else "Single"
+        self.scan_mode.set(new_mode)
         
-        # If switching to Single mode, stop any ongoing continuous scan
-        if self.scan_mode.get() == "Single":
+        if new_mode == "Single":
+            # Stop continuous scanning
             self.continuous_scan = False
             if self.after_id:
                 self.after_cancel(self.after_id)
                 self.after_id = None
+        else:
+            # Start continuous scanning
+            self.continuous_scan = True
+            self.perform_continuous_scan()
 
 if __name__ == "__main__":
     app = VSWRAnalyzer()
