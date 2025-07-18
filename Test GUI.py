@@ -448,6 +448,9 @@ class VSWRAnalyzer(tk.Tk):
         # Create entry with larger font
         entry = tk.Entry(frame, font=('Arial', 24), width=10, justify='center')
         entry.pack()
+
+        # Reset consectuive pass counter
+        self.consecutive_passes = 0
         
         def validate_and_save(event=None):
             serial = entry.get().upper()
@@ -656,8 +659,6 @@ class VSWRAnalyzer(tk.Tk):
                             self.continuous_scan = False
                             # Make sure we use the last successful scan data
                             self.vswr_data = self.last_scan_data
-                            # Trigger SAVE button action
-                            self.mark_save()
                             return
                     else:
                         # Reset counter if test fails
