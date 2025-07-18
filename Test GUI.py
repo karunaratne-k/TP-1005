@@ -195,12 +195,6 @@ class VSWRAnalyzer(tk.Tk):
         self.update_test_type_visibility()
         self.update_combined_type()
 
-    def toggle_test_type(self):
-        """Toggle between Element and Final"""
-        current = self.test_type.get()
-        self.test_type.set("Final" if current == "Element" else "Element")
-        self.update_combined_type()
-
     def update_combined_type(self):
         """Update the combined type display and get parameters"""
         device = self.device_type.get()
@@ -534,20 +528,31 @@ class VSWRAnalyzer(tk.Tk):
             self.figure.savefig(save_path, bbox_inches='tight', dpi=300)
             
             # Create and show the confirmation dialog
-            self.show_save_confirmation_dialog(save_path)
+ #           self.show_save_confirmation_dialog(save_path)
             
             # Cleanup and resume scanning
             self.consecutive_passes = 0
             self.serial = None  # Clear the serial number
-            
+
+            print("did something")
+            self.continuous_scan = True
+            self.perform_continuous_scan()
+
             # Resume continuous scanning if appropriate
-            if self.test_type.get() == "Final":
-                self.continuous_scan = True
-                self.perform_scan()
-            else:
-                self.resume_continuous_scan()
+            # if self.test_type.get() == "Final":
+            #     self.continuous_scan = True
+            #     self.perform_continuous_scan()
+            #     print("did this")
+            # else:
+            #     #added this
+            #     self.continuous_scan = True
+            #     self.perform_continuous_scan()
+            #     #end of added this
+            #     print("did that")
+            #     # self.resume_continuous_scan()
 
             # Update the test results display
+            print("got here")
             self.update_test_results("")
 
         except Exception as e:
