@@ -42,6 +42,7 @@ class VSWRAnalyzer(tk.Tk):
         self.scanner = None
         self.baseline = None
         self.serial = None
+        self.scan_mode = tk.StringVar(value="Single")  # Add this line
         
         # Create main frames
         self.control_frame = tk.Frame(self, height=300)
@@ -175,6 +176,16 @@ class VSWRAnalyzer(tk.Tk):
         )
         self.exit_btn.place(x=340, y=260)
         
+        # Add this before the exit button
+        self.scan_mode_btn = tk.Button(
+            self.control_frame,
+            textvariable=self.scan_mode,
+            command=self.toggle_scan_mode,
+            state='disabled',  # Initially disabled
+            width=10
+        )
+        self.scan_mode_btn.place(x=450, y=260)  # Adjust x position as needed
+        
     def setup_plot_area(self):
         self.figure = Figure(figsize=(12, 5))
         self.ax = self.figure.add_subplot(111)
@@ -220,36 +231,18 @@ class VSWRAnalyzer(tk.Tk):
             self.baseline_btn.config(state='disabled')
 
     def update_test_type_visibility(self):
-        """Show/hide Wet option based on device type and handle continuous scanning"""
+        """Show/hide Wet option based on device type"""
         if self.device_type.get() == "E-Dot":
             self.wet_radio.pack(side=tk.LEFT)
-            # If currently "Wet" and switching to E-Sq, change to "Element"
         else:
             if self.test_type.get() == "Wet":
                 self.test_type.set("Element")
             self.wet_radio.pack_forget()
     
-        # Update continuous scanning based on test type
-        self.update_continuous_scan()
-        
+        # Remove these lines:
+        # self.update_continuous_scan()
         # Reset consecutive passes counter when changing modes
         self.consecutive_passes = 0
-
-    def update_continuous_scan(self):
-        """Start or stop continuous scanning based on test type"""
-        test_type = self.test_type.get()
-        
-        # Cancel any existing scheduled updates
-        if self.after_id:
-            self.after_cancel(self.after_id)
-            self.after_id = None
-        
-        # Start continuous scanning for Element or Wet modes
-        if test_type in ["Element", "Wet"]:
-            self.continuous_scan = True
-            self.perform_continuous_scan()
-        else:
-            self.continuous_scan = False
 
     def perform_continuous_scan(self):
         """Perform a single scan and schedule the next one if continuous scanning is enabled"""
@@ -366,8 +359,9 @@ class VSWRAnalyzer(tk.Tk):
                 10  # Number of measurements to average
             )
             
-            # Enable scan button after baseline is captured
+            # Enable scan button and scan mode button after baseline is captured
             self.scan_btn.config(state='normal')
+            self.scan_mode_btn.config(state='normal')  # Add this line
             
             # Ensure continuous scan is off until user clicks SCAN
             self.continuous_scan = False
@@ -527,38 +521,14 @@ class VSWRAnalyzer(tk.Tk):
             # Save the plot
             self.figure.savefig(save_path, bbox_inches='tight', dpi=300)
             
-            # Create and show the confirmation dialog
- #           self.show_save_confirmation_dialog(save_path)
-            
-            # Cleanup and resume scanning
-            self.consecutive_passes = 0
-            self.serial = None  # Clear the serial number
-
-            print("did something")
-            self.continuous_scan = True
-            self.perform_continuous_scan()
-
-            # Resume continuous scanning if appropriate
-            # if self.test_type.get() == "Final":
-            #     self.continuous_scan = True
-            #     self.perform_continuous_scan()
-            #     print("did this")
-            # else:
-            #     #added this
-            #     self.continuous_scan = True
-            #     self.perform_continuous_scan()
-            #     #end of added this
-            #     print("did that")
-            #     # self.resume_continuous_scan()
+            # Clear the serial number
+            self.serial = None
 
             # Update the test results display
-            print("got here")
             self.update_test_results("")
 
         except Exception as e:
             messagebox.showerror("Error", f"Failed to save plot: {str(e)}")
-            # Make sure to resume scanning even if save fails
-            self.resume_continuous_scan()
 
     def show_save_confirmation_dialog(self, save_path):
         """Show confirmation dialog after successful save"""
@@ -728,13 +698,18 @@ class VSWRAnalyzer(tk.Tk):
         if self.baseline is None:
             messagebox.showerror("Error", "Baseline measurement required before scanning")
             return
-            
-        # Now explicitly start continuous scanning if in Element/Wet mode
-        test_type = self.test_type.get()
-        if test_type in ["Element", "Wet"]:
-            self.update_continuous_scan()
+        
+        # Clear any existing continuous scan
+        if self.after_id:
+            self.after_cancel(self.after_id)
+            self.after_id = None
+        
+        # Start scanning based on mode
+        if self.scan_mode.get() == "Continuous":
+            self.continuous_scan = True
+            self.perform_continuous_scan()
         else:
-            self.perform_scan()  # Single scan for Final mode
+            self.perform_scan()
 
     def pause_continuous_scan(self):
         """Temporarily pause continuous scanning"""
@@ -748,6 +723,18 @@ class VSWRAnalyzer(tk.Tk):
         if self.test_type.get() in ["Element", "Wet"]:
             self.continuous_scan = True
             self.perform_continuous_scan()
+
+    def toggle_scan_mode(self):
+        """Toggle between Single and Continuous scan modes"""
+        current = self.scan_mode.get()
+        self.scan_mode.set("Continuous" if current == "Single" else "Single")
+        
+        # If switching to Single mode, stop any ongoing continuous scan
+        if self.scan_mode.get() == "Single":
+            self.continuous_scan = False
+            if self.after_id:
+                self.after_cancel(self.after_id)
+                self.after_id = None
 
 if __name__ == "__main__":
     app = VSWRAnalyzer()
