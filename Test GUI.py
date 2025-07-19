@@ -650,26 +650,23 @@ class VSWRAnalyzer(tk.Tk):
                 if passed:
                     self.last_scan_data = self.vswr_data.copy()  # Make a copy of the data
                 
-                # Handle consecutive passes in Final mode
-                if self.test_type.get() == "Final":
-                    if passed:
-                        self.consecutive_passes += 1
-                        if self.consecutive_passes >= 5:
-                            # Stop continuous scanning
-                            self.continuous_scan = False
-                            # Make sure we use the last successful scan data
-                            self.vswr_data = self.last_scan_data
-                            return
+                # Handle consecutive passes
+                if passed:
+                    self.consecutive_passes += 1
+                    if self.consecutive_passes >= 5:
+                        # Stop continuous scanning
+                        self.continuous_scan = False
+                        # Make sure we use the last successful scan data
+                        self.vswr_data = self.last_scan_data
+                        result_text = f"{self.consecutive_passes} Consecutive Passes - Do you want to save the plot?"
+                        self.update_test_results(result_text)
+                        return
                     else:
-                        # Reset counter if test fails
-                        self.consecutive_passes = 0
-            
-                # Update test results
-                result_text = f"VSWR test passed ({self.consecutive_passes}/5)" if passed else "VSWR test failed - limit exceeded"
-                if self.test_type.get() != "Final":
-                    result_text = "VSWR test passed" if passed else "VSWR test failed - limit exceeded"
-                self.update_test_results(result_text)
-            
+                        result_text = f"{self.consecutive_passes} Consecutive Passes"
+                        self.update_test_results(result_text)
+                else:
+                    # Reset counter if test fails
+                    self.consecutive_passes = 0
             else:
                 # If no baseline, just plot raw data
                 frequencies = [r[0] for r in raw_results]
