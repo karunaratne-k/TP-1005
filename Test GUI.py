@@ -3,9 +3,8 @@ from tkinter import ttk, messagebox
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
-import os
-from typing import Dict, Tuple, List
-# Add these imports at the top of the file
+import json
+
 from Analyzer_Granular import (
     FrequencyScanner, 
     get_highest_baseline,
@@ -16,7 +15,7 @@ from Analyzer_Granular import (
 )
 import os
 
-COMPORT = "COM6"  # Static definition as requested
+COMPORT = "COM16"  # Static definition as requested
 
 class VSWRAnalyzer(tk.Tk):
     def __init__(self):
@@ -226,6 +225,7 @@ class VSWRAnalyzer(tk.Tk):
                 self.current_params['dwell_ms']
             )
             self.baseline_btn.config(state='normal')
+            self.update_test_results("Scanner Initialized. Click BASELINE to begin")
         except Exception as e:
             messagebox.showerror("Scanner Error", f"Failed to initialize scanner: {str(e)}")
             self.baseline_btn.config(state='disabled')
@@ -239,9 +239,6 @@ class VSWRAnalyzer(tk.Tk):
                 self.test_type.set("Element")
             self.wet_radio.pack_forget()
     
-        # Remove these lines:
-        # self.update_continuous_scan()
-        # Reset consecutive passes counter when changing modes
         self.consecutive_passes = 0
 
     def perform_continuous_scan(self):
@@ -250,7 +247,7 @@ class VSWRAnalyzer(tk.Tk):
             self.perform_scan()  # Your existing scan function
             self.after_id = self.after(100, self.perform_continuous_scan)  # Schedule next scan in 100ms
 
-    def get_params(self, combined_type: str) -> dict:
+    def get_params_old(self, combined_type: str) -> dict:
         """Get scanning parameters based on the combined type"""
         params = {
             "E-Dot-Final": {
@@ -310,6 +307,28 @@ class VSWRAnalyzer(tk.Tk):
             }
         }
         
+        self.current_params = params[combined_type]
+        self.update_params_display()
+        return self.current_params
+
+    def get_params(self, combined_type: str) -> dict:
+        """Get scanning parameters based on the combined type from a configuration file"""
+
+
+        # Try to load parameters from file
+        try:
+            with open('params.txt', 'r') as f:
+                params = json.load(f)
+        except FileNotFoundError:
+            raise FileNotFoundError("params.txt not found. Please ensure the configuration file exists.")
+        except json.JSONDecodeError:
+            raise ValueError("Invalid JSON format in params.txt. Please check the file format.")
+
+        # Validate that the requested combined_type exists
+        if combined_type not in params:
+            raise KeyError(f"Configuration for {combined_type} not found in params.txt")
+
+        # Store the current parameters and update display
         self.current_params = params[combined_type]
         self.update_params_display()
         return self.current_params
@@ -411,11 +430,13 @@ class VSWRAnalyzer(tk.Tk):
         """Add red background to plot for failed tests"""
         self.ax.set_facecolor('mistyrose')
         self.canvas.draw()
+        self.update_test_results("Failed: VSWR exceeds limit")
 
     def highlight_good_plot(self):
         """Add green background to plot for passing tests"""
         self.ax.set_facecolor('lightgreen')
         self.canvas.draw()
+        self.update_test_results("Good: VSWR within limit")
 
     def highlight_normal_plot(self):
         """Add white background to plot for normal times tests"""
@@ -426,6 +447,7 @@ class VSWRAnalyzer(tk.Tk):
         """Handle SAVE button click"""
         # Pause continuous scanning while saving
         self.pause_continuous_scan()
+        self.update_test_results("Paused while saving plot")
 
         dialog = tk.Toplevel(self)
         dialog.title("Enter Serial Number")

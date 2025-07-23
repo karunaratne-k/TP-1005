@@ -1,0 +1,57 @@
+{
+    "E-Dot-Final": {
+        "start_khz": 1606250,
+        "stop_khz": 1636250,
+        "step_khz": 1200,
+        "dwell_ms": 20,
+        "vswr_start_khz": 1616000,
+        "vswr_stop_khz": 1626500,
+        "vswr_max": 1.5,
+        "filename_template": "SERIAL_E-Dot-FINAL_VSWR-minF-nnnnnnn-VSWR-minV-m.mm_VSWR-min-x.xx_VSWR-mid-y.yy_VSWR-max-z.zz",
+        "file_save_path": "C:\\data"
+    },
+    "E-Dot-Wet": {
+        "start_khz": 1606250,
+        "stop_khz": 1636250,
+        "step_khz": 300,
+        "dwell_ms": 20,
+        "vswr_start_khz": 1616000,
+        "vswr_stop_khz": 1626500,
+        "vswr_max": 2.0,
+        "filename_template": "SERIAL_E-Dot-WET_VSWR-minF-nnnnnnn-VSWR-minV-m.mm_VSWR-min-x.xx_VSWR-mid-y.yy_VSWR-max-z.zz",
+        "file_save_path": "C:\\data"
+    },
+    "E-Dot-Element": {
+        "start_khz": 1606250,
+        "stop_khz": 1636250,
+        "step_khz": 1200,
+        "dwell_ms": 20,
+        "vswr_start_khz": 1616000,
+        "vswr_stop_khz": 1626500,
+        "vswr_max": 1.5,
+        "filename_template": "SERIAL_E-Dot-ELEMENT_VSWR-minF-nnnnnnn-VSWR-minV-m.mm_VSWR-min-x.xx_VSWR-mid-y.yy_VSWR-max-z.zz",
+        "file_save_path": "C:\\data"
+    },
+    "E-Sq-Final": {
+        "start_khz": 1606250,
+        "stop_khz": 1636250,
+        "step_khz": 1200,
+        "dwell_ms": 20,
+        "vswr_start_khz": 1616000,
+        "vswr_stop_khz": 1626500,
+        "vswr_max": 1.5,
+        "filename_template": "SERIAL_E-Sq-FINAL_VSWR-minF-nnnnnnn-VSWR-minV-m.mm_VSWR-min-x.xx_VSWR-mid-y.yy_VSWR-max-z.zz",
+        "file_save_path": "C:\\data"
+    },
+    "E-Sq-Element": {
+        "start_khz": 1606250,
+        "stop_khz": 1636250,
+        "step_khz": 1200,
+        "dwell_ms": 20,
+        "vswr_start_khz": 1616000,
+        "vswr_stop_khz": 1626500,
+        "vswr_max": 1.5,
+        "filename_template": "SERIAL_E-Sq-ELEMENT_VSWR-minF-nnnnnnn-VSWR-minV-m.mm_VSWR-min-x.xx_VSWR-mid-y.yy_VSWR-max-z.zz",
+        "file_save_path": "C:\\data"
+    }
+}
