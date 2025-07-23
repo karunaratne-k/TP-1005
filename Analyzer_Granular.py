@@ -15,6 +15,21 @@ def calculate_num_points(start_khz, stop_khz, step_khz):
     return int(num_points)
 
 
+def smoothed(vswr_results, vswr_start_khz, vswr_stop_khz, vswr_mid_khz, interpolations):
+    """
+    Placeholder function that will eventually implement smoothing.
+
+    Args:
+        vswr_results: List of tuples containing (frequency_khz, vswr_value)
+        vswr_start_khz: Start frequency for VSWR range
+        vswr_stop_khz: Stop frequency for VSWR range
+        vswr_mid_khz: Middle frequency for VSWR range
+        interpolations: Number of interpolation points
+
+    Returns:
+        The processed vswr_results
+    """
+    return vswr_results  # For now, just return input unchanged
 
 
 def calculate_vswr(return_loss_db: float) -> float:

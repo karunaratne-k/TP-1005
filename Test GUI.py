@@ -11,7 +11,8 @@ from Analyzer_Granular import (
     subtract_baseline,
     calculate_vswr,
     process_vswr_data,
-    evaluate_vswr_range
+    evaluate_vswr_range,
+    smoothed
 )
 import os
 
@@ -20,20 +21,20 @@ COMPORT = "COM16"  # Static definition as requested
 class VSWRAnalyzer(tk.Tk):
     def __init__(self):
         super().__init__()
-        
+
         # Add initialization of current_params
         self.current_params = None
-        
+
         self.title("VSWR Analyzer")
         self.geometry("1200x800")
-        
+
         # Add a variable to track continuous scanning
         self.continuous_scan = False
         self.after_id = None  # To store the ID of scheduled updates
-        
+
         # Add counter for consecutive passing scans
         self.consecutive_passes = 0
-        
+
         # Variables
         self.device_type = tk.StringVar(value="E-Dot")
         self.test_type = tk.StringVar(value="Element")
@@ -42,26 +43,26 @@ class VSWRAnalyzer(tk.Tk):
         self.baseline = None
         self.serial = None
         self.scan_mode = tk.StringVar(value="Single")  # Add this line
-        
+
         # Create main frames
         self.control_frame = tk.Frame(self, height=300)
         self.control_frame.pack(fill='x', side='top')
         self.control_frame.pack_propagate(False)
-        
+
         self.plot_frame = tk.Frame(self)
         self.plot_frame.pack(fill='both', expand=True)
-        
+
         # Setup UI components
         self.setup_control_area()
         self.setup_plot_area()
-        
+
         # Initially disable buttons that require selection
         self.update_button_states()
-        
+
         # Add instance variables for storing scan data
         self.vswr_data = None
         self.last_scan_data = None
-        
+
     def setup_control_area(self):
         # Device Type Toggle Button
         self.device_btn = tk.Button(
@@ -120,7 +121,7 @@ class VSWRAnalyzer(tk.Tk):
             textvariable=self.combined_type
         )
         self.type_label.place(x=230, y=30)
-        
+
         # Run Parameters Display
         self.params_frame = tk.LabelFrame(
             self.control_frame,
@@ -129,7 +130,7 @@ class VSWRAnalyzer(tk.Tk):
             height=200
         )
         self.params_frame.place(x=10, y=50)
-        
+
         # Test Results Display
         self.results_frame = tk.LabelFrame(
             self.control_frame,
@@ -138,7 +139,7 @@ class VSWRAnalyzer(tk.Tk):
             height=80
         )
         self.results_frame.place(x=420, y=50)
-        
+
         # Action Buttons
         self.baseline_btn = tk.Button(
             self.control_frame,
@@ -148,7 +149,7 @@ class VSWRAnalyzer(tk.Tk):
             width=10
         )
         self.baseline_btn.place(x=10, y=260)
-        
+
         self.scan_btn = tk.Button(
             self.control_frame,
             text="SCAN",
@@ -157,7 +158,7 @@ class VSWRAnalyzer(tk.Tk):
             width=10
         )
         self.scan_btn.place(x=120, y=260)
-        
+
         self.save_btn = tk.Button(
             self.control_frame,
             text="SAVE",
@@ -166,7 +167,7 @@ class VSWRAnalyzer(tk.Tk):
             width=10
         )
         self.save_btn.place(x=230, y=260)
-        
+
         self.exit_btn = tk.Button(
             self.control_frame,
             text="EXIT",
@@ -174,7 +175,7 @@ class VSWRAnalyzer(tk.Tk):
             width=10
         )
         self.exit_btn.place(x=340, y=260)
-        
+
         # Add this before the exit button
         self.scan_mode_btn = tk.Button(
             self.control_frame,
@@ -184,17 +185,17 @@ class VSWRAnalyzer(tk.Tk):
             width=10
         )
         self.scan_mode_btn.place(x=450, y=260)  # Adjust x position as needed
-        
+
     def setup_plot_area(self):
         self.figure = Figure(figsize=(12, 5))
         self.ax = self.figure.add_subplot(111)
         self.ax.set_title("VSWR")
         self.ax.set_xlabel("Frequency (kHz)")
         self.ax.set_ylabel("VSWR")
-        
+
         # Set fixed Y-axis limits
         self.ax.set_ylim(1.0, 2.0)
-        
+
         self.canvas = FigureCanvasTkAgg(self.figure, self.plot_frame)
         self.canvas.get_tk_widget().pack(fill='both', expand=True)
 
@@ -212,7 +213,7 @@ class VSWRAnalyzer(tk.Tk):
         combined = f"{device}-{test}"
         self.combined_type.set(combined)
         self.get_params(combined)
-        
+
         # Initialize scanner with current parameters
         try:
             if self.scanner:
@@ -238,7 +239,7 @@ class VSWRAnalyzer(tk.Tk):
             if self.test_type.get() == "Wet":
                 self.test_type.set("Element")
             self.wet_radio.pack_forget()
-    
+
         self.consecutive_passes = 0
 
     def perform_continuous_scan(self):
@@ -280,11 +281,11 @@ class VSWRAnalyzer(tk.Tk):
             f"VSWR Stop: {self.current_params['vswr_stop_khz']} kHz\n"
             f"VSWR Max: {self.current_params['vswr_max']}"
         )
-        
+
         # Clear existing labels in params_frame
         for widget in self.params_frame.winfo_children():
             widget.destroy()
-        
+
         # Add new label with parameters
         tk.Label(self.params_frame, text=params_text, justify='left').pack(padx=5, pady=5)
 
@@ -313,20 +314,20 @@ class VSWRAnalyzer(tk.Tk):
                 self.current_params['step_khz'],
                 10  # Number of measurements to average
             )
-            
+
             # Enable scan button and scan mode button after baseline is captured
             self.scan_btn.config(state='normal')
             self.scan_mode_btn.config(state='normal')  # Add this line
-            
+
             # Ensure continuous scan is off until user clicks SCAN
             self.continuous_scan = False
             if hasattr(self, 'after_id') and self.after_id:
                 self.after_cancel(self.after_id)
                 self.after_id = None
-            
+
             # Update status
             self.update_test_results("Baseline measurement complete - Click SCAN to proceed")
-            
+
         except Exception as e:
             messagebox.showerror("Baseline Error", f"Failed to get baseline: {str(e)}")
             self.scan_btn.config(state='disabled')
@@ -336,7 +337,7 @@ class VSWRAnalyzer(tk.Tk):
         # Clear existing labels in results_frame
         for widget in self.results_frame.winfo_children():
             widget.destroy()
-        
+
         # Add new label with results
         tk.Label(self.results_frame, text=text, justify='left').pack(padx=5, pady=5)
 
@@ -348,17 +349,17 @@ class VSWRAnalyzer(tk.Tk):
         self.ax.set_xlabel("Frequency (kHz)")
         self.ax.set_ylabel("VSWR")
         self.ax.grid(True)
-        
+
         # Set fixed Y-axis limits after clearing
         self.ax.set_ylim(1.0, 2.0)
-        
+
         # Add horizontal line at vswr_max
         self.ax.axhline(y=self.current_params['vswr_max'], color='r', linestyle='--', label='VSWR Max')
-        
+
         # Add vertical lines for vswr_start_khz and vswr_stop_khz
         self.ax.axvline(x=self.current_params['vswr_start_khz'], color='g', linestyle='--', label='Start')
         self.ax.axvline(x=self.current_params['vswr_stop_khz'], color='g', linestyle='--', label='Stop')
-        
+
         self.ax.legend()
         self.canvas.draw()
 
@@ -389,27 +390,27 @@ class VSWRAnalyzer(tk.Tk):
         dialog.title("Enter Serial Number")
         dialog.transient(self)
         dialog.grab_set()
-        
+
         # Make dialog 4 times larger
         dialog_width = 400  # Original was about 100
         dialog_height = 200  # Original was about 50
         dialog.geometry(f"{dialog_width}x{dialog_height}")
-        
+
         # Create a frame with padding
         frame = tk.Frame(dialog, padx=20, pady=20)
         frame.pack(expand=True, fill='both')
-        
+
         # Add a label with larger font
         label = tk.Label(frame, text="Enter 5-character Serial Number:", font=('Arial', 14))
         label.pack(pady=(0, 20))
-        
+
         # Create entry with larger font
         entry = tk.Entry(frame, font=('Arial', 24), width=10, justify='center')
         entry.pack()
 
         # Reset consectuive pass counter
         self.consecutive_passes = 0
-        
+
         def validate_and_save(event=None):
             serial = entry.get().upper()
             if len(serial) == 5 and serial.isalpha():
@@ -421,30 +422,30 @@ class VSWRAnalyzer(tk.Tk):
 
             else:
                 messagebox.showerror("Invalid Input", "Please enter exactly 5 alpha characters")
-        
+
         entry.bind('<Return>', validate_and_save)
-        
+
         # Center the dialog on the main window
         def center_dialog():
             # Wait for dialog to be rendered
             dialog.update_idletasks()
-            
+
             # Get main window position and dimensions
             main_x = self.winfo_x()
             main_y = self.winfo_y()
             main_width = self.winfo_width()
             main_height = self.winfo_height()
-            
+
             # Calculate position for dialog
             x = main_x + (main_width - dialog_width) // 2
             y = main_y + (main_height - dialog_height) // 2
-            
+
             # Set dialog position
             dialog.geometry(f"+{x}+{y}")
-        
+
         # Schedule centering after dialog is fully created
         self.after(10, center_dialog)
-        
+
         entry.focus_set()
 
     def save_plot(self):
@@ -481,7 +482,7 @@ class VSWRAnalyzer(tk.Tk):
 
             # Save the plot
             self.figure.savefig(save_path, bbox_inches='tight', dpi=300)
-            
+
             # Clear the serial number
             self.serial = None
 
@@ -496,43 +497,43 @@ class VSWRAnalyzer(tk.Tk):
         """Show confirmation dialog after successful save"""
         dialog = tk.Toplevel(self)
         dialog.title("Success")
-        
+
         # Set size 4x larger than default
         dialog_width = 400
         dialog_height = 200
         dialog.geometry(f"{dialog_width}x{dialog_height}")
-        
+
         # Make dialog modal
         dialog.transient(self)
         dialog.grab_set()
-        
+
         # Configure dialog
         dialog.configure(bg='white')
         dialog.resizable(False, False)
-        
+
         # Add message with larger font
-        message = tk.Label(dialog, 
+        message = tk.Label(dialog,
                           text=f"Plot saved successfully as:\n\n{save_path}",
                           font=('TkDefaultFont', 12),
                           wraplength=350,
                           justify='center',
                           bg='white')
         message.pack(expand=True, pady=20)
-        
+
         # Add OK button with larger font
-        ok_button = tk.Button(dialog, 
+        ok_button = tk.Button(dialog,
                              text="OK",
                              command=dialog.destroy,
                              width=20,
                              font=('TkDefaultFont', 10))
         ok_button.pack(pady=20)
-        
+
         # Center dialog in main window
         self.update_idletasks()
         x = self.winfo_x() + (self.winfo_width() - dialog_width) // 2
         y = self.winfo_y() + (self.winfo_height() - dialog_height) // 2
         dialog.geometry(f"+{x}+{y}")
-        
+
         # Wait for dialog to be closed
         self.wait_window(dialog)
 
@@ -548,7 +549,7 @@ class VSWRAnalyzer(tk.Tk):
     def update_status(self, message):
         """Update status in results frame"""
         self.update_test_results(message)
-        
+
     def update_button_states(self):
         """Update the state of buttons based on current conditions"""
         # Initially all buttons except device/test type are disabled
@@ -560,31 +561,50 @@ class VSWRAnalyzer(tk.Tk):
         """Execute a single scan operation"""
         if not hasattr(self, 'scanner') or not self.scanner:
             return
-        
+
         # Get scan parameters based on current mode
         params = self.get_params(f"{self.device_type.get()}-{self.test_type.get()}")
-        
+
         try:
             # Use the run method instead of perform_scan
             raw_results = self.scanner.run(
                 params['start_khz'],
                 params['step_khz']
             )
-            
+
             # Process the results if we have a baseline
             if self.baseline is not None:
                 # Subtract baseline from raw results
                 baseline_corrected = subtract_baseline(raw_results, self.baseline)
-                
+
                 # Convert return loss measurements to VSWR values
-                vswr_results = [(freq, calculate_vswr(return_loss)) 
+                vswr_results = [(freq, calculate_vswr(return_loss))
                                for freq, return_loss in baseline_corrected]
 
+                # Define interpolations variable
+                interpolations = 10  # You can adjust this value as needed
 
-                
-                # Store the VSWR data as instance variable
-                self.vswr_data = vswr_results
-                
+                # Apply smoothing with required frequency parameters
+                vswr_results = smoothed(
+                    vswr_results,
+                    params['vswr_start_khz'],
+                    params['vswr_stop_khz'],
+                    params['vswr_mid_khz'],
+                    interpolations
+                )
+
+                # Define interpolations variable
+                interpolations = 10  # You can adjust this value as needed
+
+                # Apply smoothing with required frequency parameters
+                vswr_results = smoothed(
+                    vswr_results,
+                    params['vswr_start_khz'],
+                    params['vswr_stop_khz'],
+                    params['vswr_mid_khz'],
+                    interpolations
+                )
+
                 # Extract frequencies and VSWR values for plotting
                 frequencies = [r[0] for r in vswr_results]
                 vswr = [r[1] for r in vswr_results]
@@ -637,6 +657,7 @@ class VSWRAnalyzer(tk.Tk):
         except Exception as e:
             print(f"Scan error: {str(e)}")
             self.continuous_scan = False
+            
 
     def on_closing(self):
         """Handle window closing"""
