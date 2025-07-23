@@ -464,6 +464,12 @@ class VSWRAnalyzer(tk.Tk):
             mid_vswr = (min_vswr + max_vswr) / 2
             min_freq = min(v[0] for v in self.vswr_data)
 
+            # Set the plot title using serial and combined type
+            combined_type = f"{self.device_type.get()}-{self.test_type.get()}"
+            new_title = f"{self.serial} {combined_type}"
+            self.ax.set_title(new_title)
+            self.canvas.draw()
+
             # Format the filename
             filename = self.current_params['filename_template']
             if filename.endswith('.zz'):
