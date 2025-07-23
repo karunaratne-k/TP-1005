@@ -345,7 +345,7 @@ class VSWRAnalyzer(tk.Tk):
     def plot_vswr_data(self, frequencies, vswr):
         """Plot VSWR data"""
         self.ax.clear()
-        self.ax.plot(frequencies, vswr, '-o')
+        self.ax.plot(frequencies, vswr, '-o', markersize=2)  # Reduced marker size from default to 3
         self.ax.set_title("VSWR")
         self.ax.set_xlabel("Frequency (kHz)")
         self.ax.set_ylabel("VSWR")
@@ -585,12 +585,9 @@ class VSWRAnalyzer(tk.Tk):
                 vswr_results = [(freq, calculate_vswr(return_loss))
                                for freq, return_loss in baseline_corrected]
 
-                # Define interpolations variable
-                interpolations = 10  # You can adjust this value as needed
-
                 # Apply smoothing with required frequency parameters
 
-                choice = random.choice(['none', 'cubic', 'spline'])
+                choice = 'cubic' # random.choice(['none', 'cubic', 'spline'])
 
 
                 vswr_results = smoothed(
@@ -598,11 +595,11 @@ class VSWRAnalyzer(tk.Tk):
                     params['vswr_start_khz'],
                     params['vswr_stop_khz'],
                     params['vswr_mid_khz'],
-                    interpolation_factor=10,
+                    interpolation_factor=3,
                     method= choice  # or 'spline' or 'none'
                 )
 
-                self.update_test_results(choice)
+                self.update_test_results('choice')
 
                 # Store the VSWR data
                 self.vswr_data = vswr_results  # Add this line
