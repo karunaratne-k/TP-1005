@@ -247,70 +247,6 @@ class VSWRAnalyzer(tk.Tk):
             self.perform_scan()  # Your existing scan function
             self.after_id = self.after(100, self.perform_continuous_scan)  # Schedule next scan in 100ms
 
-    def get_params_old(self, combined_type: str) -> dict:
-        """Get scanning parameters based on the combined type"""
-        params = {
-            "E-Dot-Final": {
-                "start_khz": 1_606_250,
-                "stop_khz": 1_636_250,
-                "step_khz": 1200,
-                "dwell_ms": 20,
-                "vswr_start_khz": 1_616_000,
-                "vswr_stop_khz": 1_626_500,
-                "vswr_max": 1.5,
-                "filename_template": "SERIAL_E-Dot-FINAL_VSWR-minF-nnnnnnn-VSWR-minV-m.mm_VSWR-min-x.xx_VSWR-mid-y.yy_VSWR-max-z.zz",
-                "file_save_path": "C:\\data"
-            },
-            "E-Dot-Wet": {
-                "start_khz": 1_606_250,
-                "stop_khz": 1_636_250,
-                "step_khz": 300,
-                "dwell_ms": 20,
-                "vswr_start_khz": 1_616_000,
-                "vswr_stop_khz": 1_626_500,
-                "vswr_max": 2.0,
-                "filename_template": 'SERIAL_E-Dot-WET_VSWR-minF-nnnnnnn-VSWR-minV-m.mm_VSWR-min-x.xx_VSWR-mid-y.yy_VSWR-max-z.zz',
-                "file_save_path": 'C:\\data'
-            },
-            "E-Dot-Element": {
-                "start_khz": 1_606_250,
-                "stop_khz": 1_636_250,
-                "step_khz": 1200,
-                "dwell_ms": 20,
-                "vswr_start_khz": 1_616_000,
-                "vswr_stop_khz": 1_626_500,
-                "vswr_max": 1.5,
-                "filename_template": "SERIAL_E-Dot-ELEMENT_VSWR-minF-nnnnnnn-VSWR-minV-m.mm_VSWR-min-x.xx_VSWR-mid-y.yy_VSWR-max-z.zz",
-                "file_save_path": "C:\\data"
-            },
-            "E-Sq-Final": {
-                "start_khz": 1_606_250,
-                "stop_khz": 1_636_250,
-                "step_khz": 1200,
-                "dwell_ms": 20,
-                "vswr_start_khz": 1_616_000,
-                "vswr_stop_khz": 1_626_500,
-                "vswr_max": 1.5,
-                "filename_template": "SERIAL_E-Sq-FINAL_VSWR-minF-nnnnnnn-VSWR-minV-m.mm_VSWR-min-x.xx_VSWR-mid-y.yy_VSWR-max-z.zz",
-                "file_save_path": "C:\\data"
-            },
-            "E-Sq-Element": {
-                "start_khz": 1_606_250,
-                "stop_khz": 1_636_250,
-                "step_khz": 1200,
-                "dwell_ms": 20,
-                "vswr_start_khz": 1_616_000,
-                "vswr_stop_khz": 1_626_500,
-                "vswr_max": 1.5,
-                "filename_template": "SERIAL_E-Sq-ELEMENT_VSWR-minF-nnnnnnn-VSWR-minV-m.mm_VSWR-min-x.xx_VSWR-mid-y.yy_VSWR-max-z.zz",
-                "file_save_path": "C:\\data"
-            }
-        }
-        
-        self.current_params = params[combined_type]
-        self.update_params_display()
-        return self.current_params
-
     def get_params(self, combined_type: str) -> dict:
         """Get scanning parameters based on the combined type from a configuration file"""
 
@@ -599,7 +535,6 @@ class VSWRAnalyzer(tk.Tk):
         
         # Wait for dialog to be closed
         self.wait_window(dialog)
-
 
     def exit_application(self):
         """Clean up and exit"""
