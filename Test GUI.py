@@ -579,6 +579,8 @@ class VSWRAnalyzer(tk.Tk):
                 # Convert return loss measurements to VSWR values
                 vswr_results = [(freq, calculate_vswr(return_loss)) 
                                for freq, return_loss in baseline_corrected]
+
+
                 
                 # Store the VSWR data as instance variable
                 self.vswr_data = vswr_results
