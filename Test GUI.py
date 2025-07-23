@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 import json
+import random
 
 from Analyzer_Granular import (
     FrequencyScanner, 
@@ -456,6 +457,7 @@ class VSWRAnalyzer(tk.Tk):
 
         try:
             # Calculate min, max, and mid VSWR values
+            print(self.vswr_data)
             vswr_values = [v[1] for v in self.vswr_data]
             min_vswr = min(vswr_values)
             max_vswr = max(vswr_values)
@@ -473,6 +475,8 @@ class VSWRAnalyzer(tk.Tk):
             filename = filename.replace('x.xx', f"{min_vswr:.2f}")
             filename = filename.replace('y.yy', f"{mid_vswr:.2f}")
             filename = filename.replace('z.zz', f"{max_vswr:.2f}")
+
+            print(filename)
 
             # Add .png extension
             save_path = os.path.join(self.current_params['file_save_path'], filename + '.png')
@@ -585,25 +589,23 @@ class VSWRAnalyzer(tk.Tk):
                 interpolations = 10  # You can adjust this value as needed
 
                 # Apply smoothing with required frequency parameters
+
+                choice = random.choice(['none', 'cubic', 'spline'])
+
+
                 vswr_results = smoothed(
                     vswr_results,
                     params['vswr_start_khz'],
                     params['vswr_stop_khz'],
                     params['vswr_mid_khz'],
-                    interpolations
+                    interpolation_factor=10,
+                    method= choice  # or 'spline' or 'none'
                 )
 
-                # Define interpolations variable
-                interpolations = 10  # You can adjust this value as needed
+                self.update_test_results(choice)
 
-                # Apply smoothing with required frequency parameters
-                vswr_results = smoothed(
-                    vswr_results,
-                    params['vswr_start_khz'],
-                    params['vswr_stop_khz'],
-                    params['vswr_mid_khz'],
-                    interpolations
-                )
+                # Store the VSWR data
+                self.vswr_data = vswr_results  # Add this line
 
                 # Extract frequencies and VSWR values for plotting
                 frequencies = [r[0] for r in vswr_results]
@@ -628,7 +630,6 @@ class VSWRAnalyzer(tk.Tk):
                 # Store last successful scan data if passed
                 if passed:
                     self.last_scan_data = self.vswr_data.copy()  # Make a copy of the data
-                
                 # Handle consecutive passes
                 if passed:
                     self.consecutive_passes += 1

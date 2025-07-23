@@ -2,6 +2,9 @@ from tpi_controller2 import TPIController
 import time
 import struct
 from typing import List, Tuple, Optional
+from scipy.interpolate import CubicSpline, interp1d
+import numpy as np
+
 
 def calculate_num_points(start_khz, stop_khz, step_khz):
     """Calculate the number of points for frequency scanning"""
@@ -15,39 +18,108 @@ def calculate_num_points(start_khz, stop_khz, step_khz):
     return int(num_points)
 
 
-def smoothed(vswr_results, vswr_start_khz, vswr_stop_khz, vswr_mid_khz, interpolations):
+def smoothed(vswr_results: List[Tuple[int, float]], vswr_start_khz: int, vswr_stop_khz: int,
+             vswr_mid_khz: int, interpolation_factor: int = 10, method: str = 'cubic') -> List[Tuple[int, float]]:
     """
-    Placeholder function that will eventually implement smoothing.
-
-    Args:
-        vswr_results: List of tuples containing (frequency_khz, vswr_value)
-        vswr_start_khz: Start frequency for VSWR range
-        vswr_stop_khz: Stop frequency for VSWR range
-        vswr_mid_khz: Middle frequency for VSWR range
-        interpolations: Number of interpolation points
-
-    Returns:
-        The processed vswr_results
+    Smooths and interpolates VSWR data, adding specified frequency points if not present.
     """
-    return vswr_results  # For now, just return input unchanged
+
+    # Convert numpy types to Python native types
+    def convert_types(freq, val):
+        """Convert types and round VSWR to 3 decimal places"""
+        return (int(freq), round(float(val), 3))
+
+    # Ensure input data uses native Python types
+    vswr_results = [convert_types(f, v) for f, v in vswr_results]
+
+    # Filter out non-finite values
+    filtered_data = [(freq, val) for freq, val in vswr_results if np.isfinite(val)]
+
+    if not filtered_data:
+        raise ValueError("No finite values found in the input data")
+
+    # Sort data by frequency
+    sorted_data = sorted(filtered_data, key=lambda x: x[0])
+
+    # Extract frequencies and values
+    freqs = np.array([f for f, _ in sorted_data])
+    values = np.array([v for _, v in sorted_data])
+
+    if method.lower() == 'none':
+        # Only add the specified frequencies if they're not present
+        extra_freqs = {vswr_start_khz, vswr_mid_khz, vswr_stop_khz}
+        freq_min, freq_max = min(freqs), max(freqs)
+
+        # Create simple linear interpolation for adding required points
+        linear_interp = interp1d(freqs, values, kind='linear', fill_value='extrapolate')
+
+        # Add only the required frequencies that are within range and not in original data
+        new_points = []
+        for freq in extra_freqs:
+            if freq_min <= freq <= freq_max and freq not in freqs:
+                new_points.append(convert_types(freq, float(linear_interp(freq))))
+
+        if new_points:  # If we have new points to add
+            all_points = sorted_data + new_points
+            return sorted(all_points, key=lambda x: x[0])
+
+        return sorted_data
+
+    # For cubic or spline interpolation
+    if method.lower() not in ['cubic', 'spline']:
+        raise ValueError("Method must be 'cubic', 'spline', or 'none'")
+
+    # Create interpolation function
+    if method.lower() == 'cubic':
+        interp_func = interp1d(freqs, values, kind='cubic', fill_value='extrapolate')
+    else:  # spline
+        interp_func = CubicSpline(freqs, values, extrapolate=True)
+
+    # Create dense frequency array for interpolation
+    freq_min, freq_max = min(freqs), max(freqs)
+    num_points = len(freqs)
+    dense_freqs = np.linspace(freq_min, freq_max, num_points * interpolation_factor)
+
+    # Add specified frequencies if not already present
+    extra_freqs = {vswr_start_khz, vswr_mid_khz, vswr_stop_khz}
+    for freq in extra_freqs:
+        if freq_min <= freq <= freq_max and freq not in dense_freqs:
+            dense_freqs = np.sort(np.append(dense_freqs, freq))
+
+    # Calculate interpolated values and convert to native Python types
+    return [convert_types(f, v) for f, v in zip(dense_freqs, interp_func(dense_freqs))]
 
 
 def calculate_vswr(return_loss_db: float) -> float:
     """
-    Convert return loss in dB to VSWR.
+    Convert return loss in dB to VSWR, with results limited to range 1.1 to 5.0.
 
     Args:
         return_loss_db: Return loss in dB (positive value)
 
     Returns:
-        VSWR value (always >= 1.0)
+        VSWR value (between 1.1 and 5.0)
     """
+    # Handle invalid input cases
+    if not isinstance(return_loss_db, (int, float)) or np.isnan(return_loss_db):
+        return 5.0
+
     # Convert return loss to linear scale
     reflection_coefficient = 10 ** (-abs(return_loss_db) / 20)
+
     # Calculate VSWR
-    if reflection_coefficient == 1:
-        return float('inf')
-    return (1 + reflection_coefficient) / (1 - reflection_coefficient)
+    if reflection_coefficient >= 1:
+        return 5.0
+
+    vswr = (1 + reflection_coefficient) / (1 - reflection_coefficient)
+
+    # Limit the range
+    if vswr < 1.1:
+        return 1.1
+    elif vswr > 5.0:
+        return 5.0
+
+    return float(vswr)
 
 
 def process_vswr_data(results: List[Tuple[int, float]]) -> List[Tuple[int, float]]:
