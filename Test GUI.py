@@ -618,6 +618,7 @@ class VSWRAnalyzer(tk.Tk):
                 self.plot_vswr_data(frequencies, vswr)
                 
                 # Check VSWR limits
+                #We dont need vswr_mid_khz here - we are checking its below threshold in the start-stop range
                 passed = evaluate_vswr_range(
                     vswr_results,
                     params['vswr_start_khz'],
