@@ -18,22 +18,107 @@ def calculate_num_points(start_khz, stop_khz, step_khz):
     return int(num_points)
 
 
+def add_vswr_criterion_points(vswr_data: List[Tuple[int, float]],
+                              vswr_start_khz: int,
+                              vswr_mid_khz: int,
+                              vswr_stop_khz: int) -> List[Tuple[int, float]]:
+    """
+    Add VSWR criterion frequency points using cubic interpolation.
+
+    Args:
+        vswr_data: List of tuples containing (frequency_khz, vswr_value)
+        vswr_start_khz: Start frequency point to add
+        vswr_mid_khz: Middle frequency point to add
+        vswr_stop_khz: Stop frequency point to add
+
+    Returns:
+        List of tuples containing (frequency_khz (int), vswr_value (float))
+        with vswr values rounded to 3 decimal places, sorted by frequency
+    """
+
+    # Convert input data to ensure correct types and rounding
+    def convert_point(point: Tuple[int, float]) -> Tuple[int, float]:
+        freq, val = point
+        return (int(freq), round(float(val), 3))
+
+    # Convert and validate input data
+    try:
+        typed_data = [convert_point(point) for point in vswr_data]
+    except (ValueError, TypeError) as e:
+        raise ValueError(f"Invalid data point in input: {str(e)}")
+
+    # Sort data by frequency
+    sorted_data = sorted(typed_data, key=lambda x: x[0])
+
+    # Extract frequencies and values
+    freqs = [f for f, _ in sorted_data]
+    values = [v for _, v in sorted_data]
+
+    # Validate frequency range
+    freq_min, freq_max = min(freqs), max(freqs)
+    criterion_freqs = [vswr_start_khz, vswr_mid_khz, vswr_stop_khz]
+
+    for freq in criterion_freqs:
+        if freq < freq_min or freq > freq_max:
+            raise ValueError(f"Criterion frequency {freq} kHz is outside the measured range "
+                             f"({freq_min}-{freq_max} kHz)")
+
+    # Create cubic interpolation function
+    try:
+        interp_func = interp1d(freqs, values, kind='cubic')
+    except ValueError as e:
+        raise ValueError(f"Error creating interpolation function: {str(e)}")
+
+    # Create result set starting with original data
+    result = set(typed_data)  # Use set to avoid duplicates
+
+    # Add interpolated values at criterion frequencies
+    for freq in criterion_freqs:
+        if freq not in freqs:  # Only add if frequency doesn't already exist
+            value = float(interp_func(freq))  # Convert from numpy float to Python float
+            result.add((int(freq), round(value, 3)))
+
+    # Convert back to list and sort by frequency
+    return sorted(result, key=lambda x: x[0])
+
+
 def smoothed(vswr_results: List[Tuple[int, float]], vswr_start_khz: int, vswr_stop_khz: int,
              vswr_mid_khz: int, interpolation_factor: int = 10, method: str = 'cubic') -> List[Tuple[int, float]]:
     """
-    Smooths and interpolates VSWR data, adding specified frequency points if not present.
+    Smooths VSWR values using cubic interpolation while preserving original frequency points.
+
+    Args:
+        vswr_results: List of tuples containing (frequency_khz, vswr_value)
+        vswr_start_khz: Start frequency in kHz (not used in smoothing)
+        vswr_stop_khz: Stop frequency in kHz (not used in smoothing)
+        vswr_mid_khz: Middle frequency in kHz (not used in smoothing)
+        interpolation_factor: Not used in this version
+        method: Smoothing method ('cubic' or 'none')
+
+    Returns:
+        List of tuples containing (frequency_khz, smoothed_vswr_value)
+        Frequency is int, vswr_value is float rounded to 3 decimal places
     """
 
-    # Convert numpy types to Python native types
     def convert_types(freq, val):
         """Convert types and round VSWR to 3 decimal places"""
-        return (int(freq), round(float(val), 3))
+        try:
+            return (int(freq), round(float(val), 3))
+        except (ValueError, TypeError) as e:
+            raise ValueError(f"Invalid data point ({freq}, {val}): {str(e)}")
 
-    # Ensure input data uses native Python types
-    vswr_results = [convert_types(f, v) for f, v in vswr_results]
+    # Return original data converted to correct types if no smoothing requested
+    if method.lower() == 'none':
+        return [convert_types(f, v) for f, v in vswr_results]
+
+    # Ensure input data uses correct types
+    try:
+        typed_data = [convert_types(f, v) for f, v in vswr_results]
+    except ValueError as e:
+        raise ValueError(f"Error converting input data: {str(e)}")
 
     # Filter out non-finite values
-    filtered_data = [(freq, val) for freq, val in vswr_results if np.isfinite(val)]
+    filtered_data = [(freq, val) for freq, val in typed_data if np.isfinite(val)]
 
     if not filtered_data:
         raise ValueError("No finite values found in the input data")
@@ -45,49 +130,17 @@ def smoothed(vswr_results: List[Tuple[int, float]], vswr_start_khz: int, vswr_st
     freqs = np.array([f for f, _ in sorted_data])
     values = np.array([v for _, v in sorted_data])
 
-    if method.lower() == 'none':
-        # Only add the specified frequencies if they're not present
-        extra_freqs = {vswr_start_khz, vswr_mid_khz, vswr_stop_khz}
-        freq_min, freq_max = min(freqs), max(freqs)
-
-        # Create simple linear interpolation for adding required points
-        linear_interp = interp1d(freqs, values, kind='linear', fill_value='extrapolate')
-
-        # Add only the required frequencies that are within range and not in original data
-        new_points = []
-        for freq in extra_freqs:
-            if freq_min <= freq <= freq_max and freq not in freqs:
-                new_points.append(convert_types(freq, float(linear_interp(freq))))
-
-        if new_points:  # If we have new points to add
-            all_points = sorted_data + new_points
-            return sorted(all_points, key=lambda x: x[0])
-
-        return sorted_data
-
-    # For cubic or spline interpolation
-    if method.lower() not in ['cubic', 'spline']:
-        raise ValueError("Method must be 'cubic', 'spline', or 'none'")
-
-    # Create interpolation function
-    if method.lower() == 'cubic':
+    # Create cubic interpolation function
+    try:
         interp_func = interp1d(freqs, values, kind='cubic', fill_value='extrapolate')
-    else:  # spline
-        interp_func = CubicSpline(freqs, values, extrapolate=True)
+    except ValueError as e:
+        raise ValueError(f"Error creating interpolation function: {str(e)}")
 
-    # Create dense frequency array for interpolation
-    freq_min, freq_max = min(freqs), max(freqs)
-    num_points = len(freqs)
-    dense_freqs = np.linspace(freq_min, freq_max, num_points * interpolation_factor)
+    # Apply smoothing to original frequency points
+    smoothed_values = interp_func(freqs)
 
-    # Add specified frequencies if not already present
-    extra_freqs = {vswr_start_khz, vswr_mid_khz, vswr_stop_khz}
-    for freq in extra_freqs:
-        if freq_min <= freq <= freq_max and freq not in dense_freqs:
-            dense_freqs = np.sort(np.append(dense_freqs, freq))
-
-    # Calculate interpolated values and convert to native Python types
-    return [convert_types(f, v) for f, v in zip(dense_freqs, interp_func(dense_freqs))]
+    # Convert back to regular Python types with proper rounding
+    return [convert_types(int(f), float(v)) for f, v in zip(freqs, smoothed_values)]
 
 
 def calculate_vswr(return_loss_db: float) -> float:
