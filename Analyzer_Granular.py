@@ -18,6 +18,110 @@ def calculate_num_points(start_khz, stop_khz, step_khz):
     return int(num_points)
 
 
+def find_min_vswr_frequency(vswr_data: list, start_khz: int, stop_khz: int) -> tuple:
+    """
+    Find the frequency with the lowest VSWR value within the specified range
+
+    Args:
+        vswr_data: List of tuples containing (frequency, vswr) pairs
+        start_khz: Start frequency in kHz
+        stop_khz: Stop frequency in kHz
+
+    Returns:
+        Tuple of (frequency, vswr) with the lowest VSWR value in the range
+    """
+    # Filter data points to only those within the specified range
+    valid_points = [(f, v) for f, v in vswr_data if start_khz <= f <= stop_khz]
+
+    # Return the point with minimum VSWR
+    if valid_points:
+        return min(valid_points, key=lambda x: x[1])
+    return (start_khz, 5.0)  # Fallback if no valid points found
+
+
+def get_vswr_at_frequency(frequency, vswr_data):
+    """
+    Get VSWR value at specified frequency
+
+    Args:
+        frequency: The frequency to look up
+        vswr_data: List of tuples containing (frequency, vswr) pairs
+
+    Returns:
+        VSWR value at the specified frequency
+    """
+    return next(vswr for freq, vswr in vswr_data if freq == frequency)
+
+
+def interpolated(vswr_data: List[Tuple[int, float]],
+                 interpolation_factor: int = 3,
+                 method: str = 'cubic') -> List[Tuple[int, float]]:
+    """
+    Interpolates VSWR data to add points between existing measurements while preserving original values.
+
+    Args:
+        vswr_data: List of tuples containing (frequency_khz, vswr_value)
+        interpolation_factor: Number of points to add between each original point
+        method: Interpolation method ('cubic' or 'none')
+
+    Returns:
+        List of tuples containing (frequency_khz (int), vswr_value (float))
+        with interpolated points added, sorted by frequency
+    """
+    # Return original data if no interpolation requested
+    if method.lower() == 'none' or interpolation_factor < 1:
+        return [(int(f), round(float(v), 3)) for f, v in vswr_data]
+
+    # Sort data by frequency and validate
+    try:
+        sorted_data = sorted((int(f), float(v)) for f, v in vswr_data)
+    except (ValueError, TypeError) as e:
+        raise ValueError(f"Invalid data point in input: {str(e)}")
+
+    if len(sorted_data) < 4:
+        raise ValueError("Need at least 4 points for cubic interpolation")
+
+    # Extract frequencies and values
+    orig_freqs = np.array([f for f, _ in sorted_data])
+    orig_values = np.array([v for _, v in sorted_data])
+
+    # Create interpolation points
+    result = []
+
+    # Add all original points to preserve exact values
+    for freq, value in sorted_data:
+        result.append((freq, round(value, 3)))
+
+    # Create interpolation function
+    try:
+        cs = CubicSpline(orig_freqs, orig_values)
+    except Exception as e:
+        raise ValueError(f"Error creating cubic spline: {str(e)}")
+
+    # Add interpolated points between each pair of original points
+    for i in range(len(sorted_data) - 1):
+        freq1, _ = sorted_data[i]
+        freq2, _ = sorted_data[i + 1]
+
+        # Calculate step size for interpolation
+        step = (freq2 - freq1) // (interpolation_factor + 1)
+
+        # Skip if step is too small
+        if step < 1:
+            continue
+
+        # Add interpolated points
+        for j in range(1, interpolation_factor + 1):
+            new_freq = freq1 + (j * step)
+            if new_freq >= freq2:
+                break
+
+            new_value = float(cs(new_freq))  # Convert from numpy float
+            result.append((new_freq, round(new_value, 3)))
+
+    # Sort by frequency and return
+    return sorted(result, key=lambda x: x[0])
+
 def add_vswr_criterion_points(vswr_data: List[Tuple[int, float]],
                               vswr_start_khz: int,
                               vswr_mid_khz: int,

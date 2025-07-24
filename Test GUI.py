@@ -12,6 +12,9 @@ from Analyzer_Granular import (
     subtract_baseline,
     calculate_vswr,
     add_vswr_criterion_points,
+    interpolated,
+    get_vswr_at_frequency,
+    find_min_vswr_frequency,
     process_vswr_data,
     evaluate_vswr_range,
     smoothed
@@ -461,32 +464,30 @@ class VSWRAnalyzer(tk.Tk):
             print(self.vswr_data)
             vswr_results = [v[1] for v in self.vswr_data]
 
-            try:
-                # Find the VSWR values at the specified frequencies
-                vswr_at_start = next((v[1] for v in vswr_results if v[0] == params['vswr_start_khz']), None)
-                vswr_at_mid = next((v[1] for v in vswr_results if v[0] == params['vswr_mid_khz']), None)
-                vswr_at_stop = next((v[1] for v in vswr_results if v[0] == params['vswr_stop_khz']), None)
+            print(self.current_params['vswr_start_khz'])
+            print(self.current_params['vswr_stop_khz'])
+            print(self.current_params['vswr_mid_khz'])
 
+
+
+            try:
                 # Assign values with fallback to 5.0 if not found
-                min_vswr = vswr_at_start if vswr_at_start is not None else 5.0
-                mid_vswr = vswr_at_mid if vswr_at_mid is not None else 5.0
-                max_vswr = vswr_at_stop if vswr_at_stop is not None else 5.0
+                min_vswr = get_vswr_at_frequency(self.current_params['vswr_start_khz'], self.vswr_data)
+                mid_vswr = get_vswr_at_frequency(self.current_params['vswr_mid_khz'], self.vswr_data)
+                max_vswr = get_vswr_at_frequency(self.current_params['vswr_stop_khz'], self.vswr_data)
+
             except Exception:
                 min_vswr = mid_vswr = max_vswr = 5.0
 
-            try:
-                # Filter data points to only those between start and stop frequencies
-                #Find frequency with lowest vswr in that range
-                valid_data = [(freq, vswr) for freq, vswr in self.vswr_data
-                              if self.current_params['vswr_start_khz'] <= freq <= self.current_params['vswr_stop_khz']]
 
-                if valid_data:
-                    # Find the point with minimum VSWR in the valid range
-                    min_freq = min(valid_data, key=lambda x: x[1])[0]
-                else:
-                    min_freq = self.current_params['vswr_start_khz']  # Fallback to start frequency
-            except Exception:
-                min_freq = self.current_params['vswr_start_khz']  # Fallback to start frequency
+            # Find min vswr and freq between ROI limits
+            min_freq_vswr = find_min_vswr_frequency(self.vswr_data,
+                                               self.current_params['vswr_start_khz'],
+                                               self.current_params['vswr_stop_khz']
+                                               )
+
+            min_freq = min_freq_vswr[0]
+            lowest_vswr = min_freq_vswr[1]
 
             # Set the plot title using serial and combined type
             combined_type = f"{self.device_type.get()}-{self.test_type.get()}"
@@ -496,12 +497,10 @@ class VSWRAnalyzer(tk.Tk):
 
             # Format the filename
             filename = self.current_params['filename_template']
-            if filename.endswith('.zz'):
-                filename = filename[:-3]
 
             filename = filename.replace('SERIAL', self.serial)
             filename = filename.replace('nnnnnnn', f"{min_freq:07d}")
-            filename = filename.replace('m.mm', f"{min_vswr:.2f}")
+            filename = filename.replace('m.mm', f"{lowest_vswr:.2f}")
             filename = filename.replace('x.xx', f"{min_vswr:.2f}")
             filename = filename.replace('y.yy', f"{mid_vswr:.2f}")
             filename = filename.replace('z.zz', f"{max_vswr:.2f}")
@@ -614,10 +613,16 @@ class VSWRAnalyzer(tk.Tk):
                 # Convert return loss measurements to VSWR values
                 vswr_results = [(freq, calculate_vswr(return_loss))
                                for freq, return_loss in baseline_corrected]
-                print(f"vswr_results: {vswr_results}")
+                # print(f"vswr_results: {vswr_results}")
                 # Apply smoothing with required frequency parameters
 
                 choice = 'cubic' # random.choice(['none', 'cubic', 'spline'])
+
+                vswr_results = interpolated(
+                    vswr_results,
+                    interpolation_factor=3,
+                    method= choice  # or 'spline' or 'none'
+                )
 
                 vswr_results = add_vswr_criterion_points(
                     vswr_results,
@@ -635,12 +640,13 @@ class VSWRAnalyzer(tk.Tk):
                     method= choice  # or 'spline' or 'none'
                 )
 
+
                 self.update_test_results('choice')
 
                 # Store the VSWR data
                 self.vswr_data = vswr_results  # Add this line
 
-                print(f"vswr_results: {vswr_results}")
+                # print(f"vswr_results: {vswr_results}")
 
                 # Extract frequencies and VSWR values for plotting
                 frequencies = [r[0] for r in vswr_results]
